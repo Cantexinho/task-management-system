@@ -1,0 +1,35 @@
+services:
+  api:
+    image: local/taskmanagement-api:latest
+    build:
+      context: ./src
+      dockerfile: TaskManagementSys.Api/Dockerfile
+    ports:
+      - "5000:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    networks:
+      - taskmanagement-network
+    restart: unless-stopped
+
+  blazorui:
+    image: local/taskmanagement-blazorui:latest
+    build:
+      context: ./src
+      dockerfile: TaskManagementSys.BlazorUI/Dockerfile
+    ports:
+      - "5010:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - API_URL=http://api:80  # This environment variable can be used to point to the API service
+    depends_on:
+      - api
+    networks:
+      - taskmanagement-network
+    restart: unless-stopped
+
+networks:
+  taskmanagement-network:
+    driver: bridge
