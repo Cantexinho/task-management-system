@@ -9,6 +9,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/taskmanagement.db;Cache=Shared
+    volumes:
+      - ./data:/app/data
     networks:
       - taskmanagement-network
     restart: unless-stopped
@@ -23,7 +26,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - API_URL=http://api:80  # This environment variable can be used to point to the API service
+      - API_URL=http://api:80
     depends_on:
       - api
     networks:
@@ -33,3 +36,6 @@ services:
 networks:
   taskmanagement-network:
     driver: bridge
+
+volumes:
+  data:
