@@ -2,6 +2,9 @@ FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 EXPOSE 80
 
+RUN mkdir -p /app/data
+VOLUME /app/data
+
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["TaskManagementSys.Api/TaskManagementSys.Api.csproj", "TaskManagementSys.Api/"]
