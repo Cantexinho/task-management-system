@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementSys.Core.Entities;
 using TaskManagementSys.Infrastructure.Data;
+using TaskManagementSys.Api.Dtos;
+
 
 namespace TaskManagementSys.Api.Controllers
 {
@@ -59,23 +61,16 @@ namespace TaskManagementSys.Api.Controllers
                 long? fileSize = fileExists ? new FileInfo(dataSource!).Length : null;
                 DateTime? lastModified = fileExists ? new FileInfo(dataSource!).LastWriteTime : null;
 
-                return Ok(new
+                return Ok(new HealthCheckResponse
                 {
                     Status = canConnect ? "Connected" : "Disconnected",
                     Provider = _context.Database.ProviderName,
-                    File = new
-                    {
-                        Path = dataSource,
-                        Exists = fileExists,
-                        SizeBytes = fileSize,
-                        LastModified = lastModified
-                    },
+                    ConnectionString = connectionString,
+                    DataSource = dataSource,
+                    FileExists = fileExists,
+                    FileSize = fileSize,
+                    LastModified = lastModified,
                     TaskCount = taskCount,
-                    Environment = new
-                    {
-                        Machine = Environment.MachineName,
-                        OS = System.Runtime.InteropServices.RuntimeInformation.OSDescription
-                    }
                 });
             }
             catch (Exception ex)
