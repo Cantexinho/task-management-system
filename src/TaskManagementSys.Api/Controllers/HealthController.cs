@@ -42,7 +42,8 @@ namespace TaskManagementSys.Api.Controllers
                         DueDate = DateTime.Now.AddDays(1),
                         Priority = TaskPriority.Medium,
                         Status = TaskItemStatus.Todo,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+                        CreatedByUserId = "system"
                     };
 
                     _context.Tasks.Add(testTask);
