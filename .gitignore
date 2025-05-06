@@ -3,12 +3,12 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
-# Data
-/database/
-
-
-# allow src/data/
-!src/
+# SQLite files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
 
 # User-specific files
 *.rsuser

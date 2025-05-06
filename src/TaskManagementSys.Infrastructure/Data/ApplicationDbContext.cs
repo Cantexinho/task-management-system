@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using System;
 using TaskManagementSys.Core.Entities;
 
 namespace TaskManagementSys.Infrastructure.Data
@@ -32,7 +31,6 @@ namespace TaskManagementSys.Infrastructure.Data
             modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
             modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
 
-            // Existing entity configurations
             modelBuilder.Entity<Project>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -123,7 +121,7 @@ namespace TaskManagementSys.Infrastructure.Data
             );
         }
 
-        public async System.Threading.Tasks.Task MigrateAsync()
+        public async Task MigrateAsync()
         {
             await Database.MigrateAsync();
         }
