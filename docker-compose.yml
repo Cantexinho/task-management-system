@@ -9,9 +9,9 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Data Source=/app/data/taskmanagement.db;Cache=Shared
+      - ConnectionStrings__DefaultConnection=Data Source=/app/database/taskmanagement.db;Cache=Shared
     volumes:
-      - ./data:/app/data
+      - ./database:/app/database
     networks:
       - taskmanagement-network
     restart: unless-stopped
