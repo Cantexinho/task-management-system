@@ -21,4 +21,10 @@
     <ProjectReference Include="..\TaskManagementSys.Infrastructure\TaskManagementSys.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.0" />
+  </ItemGroup>
+
 </Project>

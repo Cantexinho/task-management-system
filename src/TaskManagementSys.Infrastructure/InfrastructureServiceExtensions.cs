@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using TaskManagementSys.Core.Services;
 using TaskManagementSys.Infrastructure.Data;
 using TaskManagementSys.Infrastructure.Repositories;
