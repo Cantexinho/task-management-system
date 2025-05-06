@@ -241,7 +241,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
 
                     b.HasData(
                         new
@@ -289,7 +289,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
 
                     b.HasIndex("TaskItemId");
 
-                    b.ToTable("Comments");
+                    b.ToTable("Comments", (string)null);
                 });
 
             modelBuilder.Entity("TaskManagementSys.Core.Entities.Project", b =>
@@ -314,7 +314,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("StartDate")
+                    b.Property<DateTime?>("StartDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
@@ -322,7 +322,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Projects");
+                    b.ToTable("Projects", (string)null);
 
                     b.HasData(
                         new
@@ -368,7 +368,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("IsActive = 1");
 
-                    b.ToTable("TaskAssignments");
+                    b.ToTable("TaskAssignments", (string)null);
                 });
 
             modelBuilder.Entity("TaskManagementSys.Core.Entities.TaskItem", b =>
@@ -388,11 +388,10 @@ namespace TaskManagementSys.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("DueDate")
+                    b.Property<DateTime?>("DueDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Priority")
@@ -413,7 +412,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
 
                     b.HasIndex("ProjectId");
 
-                    b.ToTable("Tasks");
+                    b.ToTable("Tasks", (string)null);
 
                     b.HasData(
                         new

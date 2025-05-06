@@ -11,8 +11,8 @@ using TaskManagementSys.Infrastructure.Data;
 namespace TaskManagementSys.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250506123156_AddIdentity")]
-    partial class AddIdentity
+    [Migration("20250506142702_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -317,7 +317,7 @@ namespace TaskManagementSys.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("StartDate")
+                    b.Property<DateTime?>("StartDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Status")
@@ -391,11 +391,10 @@ namespace TaskManagementSys.Infrastructure.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime>("DueDate")
+                    b.Property<DateTime?>("DueDate")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("Priority")
