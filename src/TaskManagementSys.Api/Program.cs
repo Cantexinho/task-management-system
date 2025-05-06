@@ -1,11 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.IO;
-using System.Linq;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using TaskManagementSys.Infrastructure;
 using TaskManagementSys.Infrastructure.Data;
 
@@ -102,9 +97,9 @@ using (var scope = app.Services.CreateScope())
             }
         }
         
-        logger.LogInformation("Ensuring database is created...");
-        await context.Database.EnsureCreatedAsync();
-        logger.LogInformation("Database created successfully.");
+        logger.LogInformation("Applying database migrations...");
+        await context.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
         
         if (!string.IsNullOrEmpty(dbPath) && File.Exists(dbPath))
         {
@@ -141,7 +136,6 @@ app.MapControllers();
 
 app.Run();
 
-// Helper method to seed identity data
 async Task SeedIdentityDataAsync(IServiceProvider serviceProvider)
 {
     var userManager = serviceProvider.GetRequiredService<UserManager<IdentityUser>>();
