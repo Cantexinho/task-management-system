@@ -11,5 +11,10 @@ namespace TaskManagementSys.Core.Services
         Task<TaskItem> CreateTaskAsync(TaskItem task);
         Task<TaskItem> UpdateTaskAsync(TaskItem task);
         Task<bool> DeleteTaskAsync(int id);
+        
+        Task<IEnumerable<TaskItem>> GetTasksByUserIdAsync(string userId);
+        
+        Task<TaskAssignment> AssignTaskAsync(TaskAssignment assignment);
+        Task<bool> UnassignTaskAsync(int taskId, string userId);
     }
 }
