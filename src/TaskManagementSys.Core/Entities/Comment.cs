@@ -11,6 +11,6 @@ namespace TaskManagementSys.Core.Entities
         public required string UserId { get; set; }
         
         // Navigation properties
-        public virtual TaskItem? TaskItem { get; set; }
+        public TaskItem? TaskItem { get; set; }
     }
 }
