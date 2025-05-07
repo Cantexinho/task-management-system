@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System;
 using TaskManagementSys.Core.Entities;
 
 namespace TaskManagementSys.Infrastructure.Data
@@ -36,6 +37,11 @@ namespace TaskManagementSys.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
                 entity.Property(e => e.Description).HasMaxLength(1000);
+                
+                entity.HasIndex(e => e.CreatedByUserId);
+                entity.HasIndex(e => e.Status);
+                entity.ToTable(t => t.HasCheckConstraint("CK_Project_EndDate_After_StartDate", 
+                    "EndDate IS NULL OR StartDate IS NULL OR EndDate >= StartDate"));
             });
 
             modelBuilder.Entity<TaskItem>(entity =>
@@ -52,6 +58,17 @@ namespace TaskManagementSys.Infrastructure.Data
                 entity.HasMany(t => t.Categories)
                       .WithMany(c => c.Tasks)
                       .UsingEntity(j => j.ToTable("TaskItemCategory"));
+                
+                entity.HasIndex(e => e.CreatedByUserId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.DueDate);
+                entity.HasIndex(e => e.Priority);
+                entity.HasIndex(e => new { e.Status, e.DueDate });
+                
+                entity.ToTable(t => t.HasCheckConstraint("CK_TaskItem_CompletedAt", 
+                    "Status != 3 OR CompletedAt IS NOT NULL"));
+                
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
             modelBuilder.Entity<Comment>(entity =>
@@ -63,6 +80,12 @@ namespace TaskManagementSys.Infrastructure.Data
                       .WithMany(t => t.Comments)
                       .HasForeignKey(c => c.TaskItemId)
                       .OnDelete(DeleteBehavior.Cascade);
+                
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.ToTable(t => t.HasCheckConstraint("CK_Comment_Content_NotEmpty", 
+                    "LENGTH(TRIM(Content)) > 0"));
             });
 
             modelBuilder.Entity<TaskAssignment>(entity =>
@@ -77,6 +100,13 @@ namespace TaskManagementSys.Infrastructure.Data
                 entity.HasIndex(ta => new { ta.TaskItemId, ta.UserId })
                       .IsUnique()
                       .HasFilter("IsActive = 1");
+                
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.AssignedById);
+                entity.Property(e => e.AssignedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+                entity.ToTable(t => t.HasCheckConstraint("CK_TaskAssignment_DeactivatedAt", 
+                    "IsActive = 1 OR DeactivatedAt IS NOT NULL"));
             });
 
             modelBuilder.Entity<Category>(entity =>
@@ -84,6 +114,12 @@ namespace TaskManagementSys.Infrastructure.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.Color).HasMaxLength(50);
+                
+                entity.HasIndex(e => e.Name);
+                entity.ToTable(t => t.HasCheckConstraint("CK_Category_Color_Format", 
+                    "Color IS NULL OR Color LIKE '#%' AND LENGTH(Color) <= 9"));
+                entity.ToTable(t => t.HasCheckConstraint("CK_Category_Name_NotEmpty", 
+                    "LENGTH(TRIM(Name)) > 0"));
             });
 
             modelBuilder.Entity<Project>().HasData(
