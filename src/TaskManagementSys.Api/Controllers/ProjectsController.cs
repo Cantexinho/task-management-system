@@ -3,8 +3,12 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using TaskManagementSys.Api.Dtos.Projects;
+using TaskManagementSys.Api.Dtos.Tasks;
+using TaskManagementSys.Api.Mapping;
 using TaskManagementSys.Core.Entities;
 using TaskManagementSys.Core.Services;
 
@@ -30,26 +34,29 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Project>>> GetAllProjects()
+        public async Task<ActionResult<IEnumerable<ProjectResponse>>> GetAllProjects()
         {
             try
             {
+                IEnumerable<Project> projects;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
+                if (userId == null)
+                {
+                    return Unauthorized("User ID not found");
+                }
+                
                 if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                 {
-                    var projects = await _projectService.GetAllProjectsAsync();
-                    return Ok(projects);
+                    projects = await _projectService.GetAllProjectsAsync();
                 }
                 else
                 {
-                    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                    if (userId == null)
-                    {
-                        return Unauthorized("User ID not found");
-                    }
-
-                    var projects = await _projectService.GetProjectsByUserIdAsync(userId);
-                    return Ok(projects);
+                    projects = await _projectService.GetProjectsByUserIdAsync(userId);
                 }
+                
+                var responses = projects.Select(p => p.ToResponse()).ToList();
+                return Ok(responses);
             }
             catch (Exception ex)
             {
@@ -59,7 +66,7 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<Project>> GetProjectById(int id)
+        public async Task<ActionResult<ProjectResponse>> GetProjectById(int id)
         {
             try
             {
@@ -85,7 +92,10 @@ namespace TaskManagementSys.Api.Controllers
                     return Forbid();
                 }
 
-                return Ok(project);
+                var creator = await _userManager.FindByIdAsync(project.CreatedByUserId);
+                var response = project.ToResponse(creator);
+                
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -95,20 +105,28 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<Project>> CreateProject(Project project)
+        public async Task<ActionResult<ProjectResponse>> CreateProject(CreateProjectRequest request)
         {
             try
             {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+                
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (userId == null)
                 {
                     return Unauthorized("User ID not found");
                 }
 
-                project.CreatedByUserId = userId;
-
+                var project = request.ToEntity(userId);
                 var createdProject = await _projectService.CreateProjectAsync(project);
-                return CreatedAtAction(nameof(GetProjectById), new { id = createdProject.Id }, createdProject);
+                
+                var creator = await _userManager.FindByIdAsync(userId);
+                var response = createdProject.ToResponse(creator);
+                
+                return CreatedAtAction(nameof(GetProjectById), new { id = createdProject.Id }, response);
             }
             catch (ArgumentException ex)
             {
@@ -122,11 +140,11 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateProject(int id, Project project)
+        public async Task<IActionResult> UpdateProject(int id, UpdateProjectRequest request)
         {
             try
             {
-                if (id != project.Id)
+                if (id != request.Id)
                 {
                     return BadRequest("Project ID mismatch");
                 }
@@ -152,7 +170,8 @@ namespace TaskManagementSys.Api.Controllers
                     return Forbid();
                 }
 
-                await _projectService.UpdateProjectAsync(project);
+                request.UpdateEntity(existingProject);
+                await _projectService.UpdateProjectAsync(existingProject);
                 return NoContent();
             }
             catch (ArgumentException ex)
@@ -196,7 +215,7 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpGet("{id}/tasks")]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetProjectTasks(int id)
+        public async Task<ActionResult<IEnumerable<TaskSummaryResponse>>> GetProjectTasks(int id)
         {
             try
             {
@@ -222,7 +241,16 @@ namespace TaskManagementSys.Api.Controllers
                 }
 
                 var tasks = await _projectService.GetTasksByProjectIdAsync(id);
-                return Ok(tasks);
+                var taskResponses = tasks.Select(t => new TaskSummaryResponse
+                {
+                    Id = t.Id,
+                    Title = t.Title,
+                    DueDate = t.DueDate,
+                    Priority = t.Priority,
+                    Status = t.Status
+                }).ToList();
+                
+                return Ok(taskResponses);
             }
             catch (Exception ex)
             {

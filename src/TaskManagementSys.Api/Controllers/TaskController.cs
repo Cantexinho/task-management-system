@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using TaskManagementSys.Api.Dtos.Tasks;
+using TaskManagementSys.Api.Mapping;
 using TaskManagementSys.Core.Entities;
 using TaskManagementSys.Core.Services;
 
@@ -30,26 +33,29 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TaskItem>>> GetAllTasks()
+        public async Task<ActionResult<IEnumerable<TaskResponse>>> GetAllTasks()
         {
             try
             {
+                IEnumerable<TaskItem> tasks;
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
+                if (userId == null)
+                {
+                    return Unauthorized("User ID not found");
+                }
+                
                 if (User.IsInRole("Admin") || User.IsInRole("Manager"))
                 {
-                    var tasks = await _taskService.GetAllTasksAsync();
-                    return Ok(tasks);
+                    tasks = await _taskService.GetAllTasksAsync();
                 }
                 else
-                {
-                    var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                    if (userId == null)
-                    {
-                        return Unauthorized("User ID not found");
-                    }
-                    
-                    var tasks = await _taskService.GetTasksByUserIdAsync(userId);
-                    return Ok(tasks);
+                {                
+                    tasks = await _taskService.GetTasksByUserIdAsync(userId);
                 }
+                
+                var taskResponses = tasks.Select(t => t.ToResponse()).ToList();
+                return Ok(taskResponses);
             }
             catch (Exception ex)
             {
@@ -59,7 +65,7 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpGet("{id}")]
-        public async Task<ActionResult<TaskItem>> GetTaskById(int id)
+        public async Task<ActionResult<TaskResponse>> GetTaskById(int id)
         {
             try
             {
@@ -86,7 +92,10 @@ namespace TaskManagementSys.Api.Controllers
                     return Forbid();
                 }
                 
-                return Ok(task);
+                var creator = await _userManager.FindByIdAsync(task.CreatedByUserId);
+                var response = task.ToResponse(creator);
+                
+                return Ok(response);
             }
             catch (Exception ex)
             {
@@ -96,7 +105,7 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TaskItem>> CreateTask(TaskItem task)
+        public async Task<ActionResult<TaskResponse>> CreateTask(CreateTaskRequest request)
         {
             try
             {
@@ -112,11 +121,38 @@ namespace TaskManagementSys.Api.Controllers
                     return Unauthorized("User ID not found");
                 }
                 
-                task.CreatedByUserId = userId;
-                task.CreatedAt = DateTime.UtcNow;
-                
+                var task = request.ToEntity(userId);
                 var createdTask = await _taskService.CreateTaskAsync(task);
-                return CreatedAtAction(nameof(GetTaskById), new { id = createdTask.Id }, createdTask);
+                
+                // Process category assignments
+                if (request.CategoryIds.Any())
+                {
+                    // Note: This would require enhancing the TaskService to handle categories
+                    // For now, we're just mapping the response
+                }
+                
+                // Process user assignments
+                if (request.AssigneeIds.Any())
+                {
+                    foreach (var assigneeId in request.AssigneeIds)
+                    {
+                        var assignment = new TaskAssignment
+                        {
+                            TaskItemId = createdTask.Id,
+                            UserId = assigneeId,
+                            AssignedById = userId,
+                            AssignedAt = DateTime.UtcNow,
+                            IsActive = true
+                        };
+                        
+                        await _taskService.AssignTaskAsync(assignment);
+                    }
+                }
+                
+                var creator = await _userManager.FindByIdAsync(userId);
+                var response = createdTask.ToResponse(creator);
+                
+                return CreatedAtAction(nameof(GetTaskById), new { id = createdTask.Id }, response);
             }
             catch (Exception ex)
             {
@@ -126,11 +162,11 @@ namespace TaskManagementSys.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateTask(int id, TaskItem task)
+        public async Task<IActionResult> UpdateTask(int id, UpdateTaskRequest request)
         {
             try
             {
-                if (id != task.Id)
+                if (id != request.Id)
                 {
                     return BadRequest("Task ID mismatch");
                 }
@@ -156,38 +192,41 @@ namespace TaskManagementSys.Api.Controllers
                 {
                     if (isAssignedToUser)
                     {
-                        var updatedTask = existingTask;
-                        updatedTask.Status = task.Status;
+                        // Assignees can only update status
+                        existingTask.Status = request.Status;
                         
-                        if (task.Status == TaskItemStatus.Completed && !updatedTask.CompletedAt.HasValue)
+                        if (request.Status == TaskItemStatus.Completed && !existingTask.CompletedAt.HasValue)
                         {
-                            updatedTask.CompletedAt = DateTime.UtcNow;
+                            existingTask.CompletedAt = DateTime.UtcNow;
                         }
-                        else if (task.Status != TaskItemStatus.Completed)
+                        else if (request.Status != TaskItemStatus.Completed)
                         {
-                            updatedTask.CompletedAt = null;
+                            existingTask.CompletedAt = null;
                         }
                         
-                        await _taskService.UpdateTaskAsync(updatedTask);
+                        await _taskService.UpdateTaskAsync(existingTask);
                         return NoContent();
                     }
                     
                     return Forbid();
                 }
                 
-                task.CreatedByUserId = existingTask.CreatedByUserId;
-                task.CreatedAt = existingTask.CreatedAt;
+                // Update the existing task
+                request.UpdateEntity(existingTask);
                 
-                if (task.Status == TaskItemStatus.Completed && !existingTask.CompletedAt.HasValue)
+                // Preserve original values
+                if (existingTask.Status == TaskItemStatus.Completed && !existingTask.CompletedAt.HasValue)
                 {
-                    task.CompletedAt = DateTime.UtcNow;
+                    existingTask.CompletedAt = DateTime.UtcNow;
                 }
-                else if (task.Status != TaskItemStatus.Completed)
+                else if (existingTask.Status != TaskItemStatus.Completed)
                 {
-                    task.CompletedAt = null;
+                    existingTask.CompletedAt = null;
                 }
                 
-                await _taskService.UpdateTaskAsync(task);
+                // Update categories - would need enhanced TaskService
+                
+                await _taskService.UpdateTaskAsync(existingTask);
                 return NoContent();
             }
             catch (Exception ex)
@@ -285,12 +324,26 @@ namespace TaskManagementSys.Api.Controllers
         {
             try
             {
-                var result = await _taskService.UnassignTaskAsync(id, request.UserId);
-                if (!result)
+                var task = await _taskService.GetTaskByIdAsync(id);
+                if (task == null)
                 {
-                    return NotFound("Task assignment not found");
+                    return NotFound($"Task with ID {id} not found");
                 }
                 
+                // check if user exists
+                var user = await _userManager.FindByIdAsync(request.UserId);
+                if (user == null)
+                {
+                    return BadRequest("User not found");
+                }
+                
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (userId == null)
+                {
+                    return Unauthorized("User ID not found");
+                }
+                
+                await _taskService.UnassignTaskAsync(id, request.UserId);
                 return Ok(new { message = "Task unassigned successfully" });
             }
             catch (Exception ex)
