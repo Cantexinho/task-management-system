@@ -18,8 +18,10 @@ namespace TaskManagementSys.Infrastructure
                     b => b.MigrationsAssembly("TaskManagementSys.Infrastructure")));
 
             services.AddScoped<TaskRepository>();
+            services.AddScoped<ProjectRepository>();
             
             services.AddScoped<ITaskService, TaskService>();
+            services.AddScoped<IProjectService, ProjectService>();
             
             return services;
         }
