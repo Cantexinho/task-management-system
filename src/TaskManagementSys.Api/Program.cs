@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using TaskManagementSys.Infrastructure;
+using TaskManagementSys.Infrastructure.Configuration;
 using TaskManagementSys.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,16 +41,15 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 builder.Services.AddAuthentication()
     .AddGoogle(options =>
     {
-        // Google auth settings
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+        options.ClientId = EnvVars.GoogleClientId;
+        options.ClientSecret = EnvVars.GoogleClientSecret;
     });
 
 // Cookie policy
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    options.ExpireTimeSpan = TimeSpan.FromDays(14);
+    options.ExpireTimeSpan = TimeSpan.FromDays(EnvVars.JwtExpiryDays);
     options.SlidingExpiration = true;
 });
 
@@ -76,7 +76,7 @@ using (var scope = app.Services.CreateScope())
         var logger = services.GetRequiredService<ILogger<Program>>();
         var context = services.GetRequiredService<ApplicationDbContext>();
         
-        var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+        var connectionString = EnvVars.ConnectionString;
         var dbPath = "";
         
         if (connectionString != null && connectionString.Contains("Data Source="))
@@ -153,7 +153,7 @@ async Task SeedIdentityDataAsync(IServiceProvider serviceProvider)
         }
     }
     
-    var adminEmail = "admin@taskmanagement.com";
+    var adminEmail = EnvVars.AdminEmail;
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
     
     if (adminUser == null)
@@ -165,7 +165,7 @@ async Task SeedIdentityDataAsync(IServiceProvider serviceProvider)
             EmailConfirmed = true
         };
         
-        var result = await userManager.CreateAsync(newAdminUser, "Admin123!");
+        var result = await userManager.CreateAsync(newAdminUser, EnvVars.AdminPassword);
         
         if (result.Succeeded)
         {
