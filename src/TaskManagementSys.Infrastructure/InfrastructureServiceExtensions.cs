@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using TaskManagementSys.Core.Services;
+using TaskManagementSys.Infrastructure.Configuration;
 using TaskManagementSys.Infrastructure.Data;
 using TaskManagementSys.Infrastructure.Repositories;
 using TaskManagementSys.Infrastructure.Services;
@@ -14,7 +15,7 @@ namespace TaskManagementSys.Infrastructure
         {
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlite(
-                    configuration.GetConnectionString("DefaultConnection"),
+                    EnvVars.ConnectionString,
                     b => b.MigrationsAssembly("TaskManagementSys.Infrastructure")));
 
             services.AddScoped<TaskRepository>();
