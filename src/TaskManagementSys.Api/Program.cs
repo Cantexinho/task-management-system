@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using DotNetEnv;
 using TaskManagementSys.Infrastructure;
 using TaskManagementSys.Infrastructure.Configuration;
 using TaskManagementSys.Infrastructure.Data;
+
+Env.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
