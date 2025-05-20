@@ -1,7 +1,43 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Task Management Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
-
-Welcome to your new app.
+<AuthorizeView>
+    <Authorized>
+        <h1>Welcome to Task Management System</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h4>My Tasks</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>You have no tasks assigned yet.</p>
+                        <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>My Projects</h4>
+                    </div>
+                    <div class="card-body">
+                        <p>You have no projects yet.</p>
+                        <a href="/projects" class="btn btn-primary">View All Projects</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div class="text-center mt-5">
+            <h1>Welcome to Task Management System</h1>
+            <p class="lead">Please log in to access your tasks and projects.</p>
+            <a href="/login" class="btn btn-primary me-2">Login</a>
+            <a href="/register" class="btn btn-secondary">Register</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>

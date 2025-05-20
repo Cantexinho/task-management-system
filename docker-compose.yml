@@ -14,6 +14,7 @@ services:
       - ConnectionStrings__DefaultConnection=Data Source=/app/database/taskmanagement.db;Cache=Shared
     volumes:
       - ./database:/app/database
+      - ./src:/src
     networks:
       - taskmanagement-network
     restart: unless-stopped
@@ -23,6 +24,7 @@ services:
     build:
       context: ./src
       dockerfile: TaskManagementSys.BlazorUI/Dockerfile
+      target: dev
     ports:
       - "5010:80"
     env_file:
@@ -31,6 +33,10 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - API_URL=http://api:80
+      - DOTNET_WATCH_RESTART_ON_RUDE_EDIT=true
+      - DOTNET_MODIFIABLE_ASSEMBLIES=Prefered
+    volumes:
+      - ./src:/src
     depends_on:
       - api
     networks:

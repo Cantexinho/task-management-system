@@ -1,0 +1,234 @@
+@page "/register"
+@using TaskManagementSys.BlazorUI.Services
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>Register</PageTitle>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">Register</h3>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit" FormName="registerForm">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        
+                        <div class="form-group mb-3">
+                            <label for="email">Email</label>
+                            <InputText id="email" @bind-Value="model.Email" class="form-control" />
+                            <ValidationMessage For="@(() => model.Email)" />
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="password">Password</label>
+                            <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" @oninput="CheckPasswordStrength" />
+                            <ValidationMessage For="@(() => model.Password)" />
+                            @if (!string.IsNullOrEmpty(model.Password))
+                            {
+                                <div class="mt-2">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <small>Password Strength</small>
+                                        <small>@passwordStrengthText</small>
+                                    </div>
+                                    <div class="progress" style="height: 5px;">
+                                        <div class="@passwordBarClass" role="progressbar" style="width: @passwordStrength%" aria-valuenow="@passwordStrength" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="confirmPassword">Confirm Password</label>
+                            <InputText id="confirmPassword" @bind-Value="model.ConfirmPassword" type="password" class="form-control" />
+                            <ValidationMessage For="@(() => model.ConfirmPassword)" />
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(errorMessage))
+                        {
+                            <div class="alert alert-danger mt-3">
+                                @errorMessage
+                            </div>
+                        }
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                @if (isLoading)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span> Loading...</span>
+                                }
+                                else
+                                {
+                                    <span>Register</span>
+                                }
+                            </button>
+                        </div>
+                        
+                        <div class="text-center mt-3">
+                            <div class="separator mb-3">Or register with</div>
+                            <button type="button" class="btn btn-outline-danger" @onclick="RegisterWithGoogle">
+                                <i class="bi bi-google"></i> Google
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+                <div class="card-footer text-center">
+                    <span>Already have an account? </span>
+                    <a href="login">Login here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .separator {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        color: #6c757d;
+    }
+
+    .separator::before,
+    .separator::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .separator::before {
+        margin-right: .25em;
+    }
+
+    .separator::after {
+        margin-left: .25em;
+    }
+</style>
+
+@code {
+    private RegisterModel model = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+    private int passwordStrength = 0;
+    private string passwordStrengthText = "";
+    private string passwordBarClass = "";
+    
+    private class RegisterModel
+    {
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Invalid email format")]
+        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", 
+            ErrorMessage = "Please enter a valid email address")]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Password is required")]
+        [StringLength(100, ErrorMessage = "Password must be at least {2} characters long", MinimumLength = 6)]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{6,}$", 
+            ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character")]
+        public string Password { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Confirm Password is required")]
+        [Compare("Password", ErrorMessage = "Passwords do not match")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+    
+    private void CheckPasswordStrength()
+    {
+        var password = model.Password;
+        
+        if (string.IsNullOrEmpty(password))
+        {
+            passwordStrength = 0;
+            passwordStrengthText = "";
+            passwordBarClass = "";
+            return;
+        }
+        
+        int score = 0;
+        
+        // Length check
+        if (password.Length > 8)
+            score += 20;
+        else if (password.Length > 6)
+            score += 10;
+        
+        // Character variety checks
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, "[a-z]"))
+            score += 15;
+        
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, "[A-Z]"))
+            score += 20;
+        
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, "[0-9]"))
+            score += 20;
+        
+        if (System.Text.RegularExpressions.Regex.IsMatch(password, "[^a-zA-Z0-9]"))
+            score += 25;
+        
+        passwordStrength = Math.Min(100, score);
+        
+        if (passwordStrength < 40)
+        {
+            passwordStrengthText = "Weak";
+            passwordBarClass = "progress-bar bg-danger";
+        }
+        else if (passwordStrength < 70)
+        {
+            passwordStrengthText = "Medium";
+            passwordBarClass = "progress-bar bg-warning";
+        }
+        else
+        {
+            passwordStrengthText = "Strong";
+            passwordBarClass = "progress-bar bg-success";
+        }
+    }
+    
+    private async Task HandleValidSubmit()
+    {
+        isLoading = true;
+        errorMessage = string.Empty;
+        
+        try
+        {
+            var result = await AuthService.RegisterAsync(model.Email, model.Password, model.ConfirmPassword);
+            
+            if (result)
+            {
+                // Create user session and update auth state
+                var userSession = new UserSession
+                {
+                    Email = model.Email,
+                    Roles = new List<string> { "User" } // Default role
+                };
+                
+                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession);
+                
+                Navigation.NavigateTo("/");
+            }
+            else
+            {
+                errorMessage = "Registration failed. Please try again or use a different email.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+    
+    private void RegisterWithGoogle()
+    {
+        // Redirect to the Google auth endpoint
+        Navigation.NavigateTo($"{AuthService.BaseUrl}/api/Account/external-login?provider=Google", true);
+    }
+} 
