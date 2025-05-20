@@ -9,6 +9,13 @@ COPY ["TaskManagementSys.Core/TaskManagementSys.Core.csproj", "TaskManagementSys
 RUN dotnet restore "TaskManagementSys.BlazorUI/TaskManagementSys.BlazorUI.csproj"
 COPY . .
 WORKDIR "/src/TaskManagementSys.BlazorUI"
+
+# Development stage for watching files
+FROM build AS dev
+WORKDIR /src/TaskManagementSys.BlazorUI
+ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://+:80"]
+
+# Production build
 RUN dotnet build "TaskManagementSys.BlazorUI.csproj" -c Release -o /app/build
 
 FROM build AS publish
