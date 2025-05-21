@@ -128,10 +128,9 @@ namespace TaskManagementSys.Api.Controllers
                 if (request.CategoryIds.Any())
                 {
                     // Note: This would require enhancing the TaskService to handle categories
-                    // For now, we're just mapping the response
+                    // For now, just mapping the response
                 }
                 
-                // Process user assignments
                 if (request.AssigneeIds.Any())
                 {
                     foreach (var assigneeId in request.AssigneeIds)
@@ -211,10 +210,8 @@ namespace TaskManagementSys.Api.Controllers
                     return Forbid();
                 }
                 
-                // Update the existing task
                 request.UpdateEntity(existingTask);
                 
-                // Preserve original values
                 if (existingTask.Status == TaskItemStatus.Completed && !existingTask.CompletedAt.HasValue)
                 {
                     existingTask.CompletedAt = DateTime.UtcNow;
