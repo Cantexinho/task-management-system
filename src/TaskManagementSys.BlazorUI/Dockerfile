@@ -1,7 +1,3 @@
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
-WORKDIR /app
-EXPOSE 80
-
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 COPY ["TaskManagementSys.BlazorUI/TaskManagementSys.BlazorUI.csproj", "TaskManagementSys.BlazorUI/"]
@@ -10,18 +6,11 @@ RUN dotnet restore "TaskManagementSys.BlazorUI/TaskManagementSys.BlazorUI.csproj
 COPY . .
 WORKDIR "/src/TaskManagementSys.BlazorUI"
 
-# Development stage for watching files
-FROM build AS dev
-WORKDIR /src/TaskManagementSys.BlazorUI
-ENTRYPOINT ["dotnet", "watch", "run", "--urls", "http://+:80"]
+RUN dotnet publish "TaskManagementSys.BlazorUI.csproj" -c Release -o /app/publish
 
-# Production build
-RUN dotnet build "TaskManagementSys.BlazorUI.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "TaskManagementSys.BlazorUI.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "TaskManagementSys.BlazorUI.dll"]
+FROM nginx:alpine AS final
+WORKDIR /usr/share/nginx/html
+COPY --from=build /app/publish/wwwroot .
+COPY TaskManagementSys.BlazorUI/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 80
+ENTRYPOINT ["nginx", "-g", "daemon off;"]

@@ -1,25 +1,29 @@
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.JSInterop;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace TaskManagementSys.BlazorUI.Services
 {
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
-        private readonly ProtectedSessionStorage _sessionStorage;
-        private ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
+        private readonly IJSRuntime _jsRuntime;
+        private readonly ClaimsPrincipal _anonymous = new ClaimsPrincipal(new ClaimsIdentity());
 
-        public CustomAuthStateProvider(ProtectedSessionStorage sessionStorage)
+        public CustomAuthStateProvider(IJSRuntime jsRuntime)
         {
-            _sessionStorage = sessionStorage;
+            _jsRuntime = jsRuntime;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                var userSessionStorageResult = await _sessionStorage.GetAsync<UserSession>("UserSession");
-                var userSession = userSessionStorageResult.Success ? userSessionStorageResult.Value : null;
+                var storedUserJson = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "userSession");
+                if (string.IsNullOrEmpty(storedUserJson))
+                    return await Task.FromResult(new AuthenticationState(_anonymous));
+
+                var userSession = JsonSerializer.Deserialize<UserSession>(storedUserJson);
                 
                 if (userSession == null)
                     return await Task.FromResult(new AuthenticationState(_anonymous));
@@ -53,7 +57,8 @@ namespace TaskManagementSys.BlazorUI.Services
 
             if (userSession != null)
             {
-                await _sessionStorage.SetAsync("UserSession", userSession);
+                var userSessionJson = JsonSerializer.Serialize(userSession);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "userSession", userSessionJson);
                 
                 claimsPrincipal = new ClaimsPrincipal(new ClaimsIdentity(new List<Claim>
                 {
@@ -72,7 +77,7 @@ namespace TaskManagementSys.BlazorUI.Services
             }
             else
             {
-                await _sessionStorage.DeleteAsync("UserSession");
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", "userSession");
                 claimsPrincipal = _anonymous;
             }
 

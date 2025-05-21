@@ -1,5 +1,6 @@
 @page "/login"
 @using TaskManagementSys.BlazorUI.Services
+@using System.Text.RegularExpressions
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
@@ -14,20 +15,24 @@
                     <h3 class="text-center">Login</h3>
                 </div>
                 <div class="card-body">
-                    <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
-                        <DataAnnotationsValidator />
-                        <ValidationSummary />
+                    <EditForm EditContext="@editContext" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
                         
                         <div class="form-group mb-3">
                             <label for="email">Email</label>
-                            <InputText id="email" @bind-Value="model.Email" class="form-control" />
-                            <ValidationMessage For="@(() => model.Email)" />
+                            <InputText id="email" @bind-Value="model.Email" class="form-control" @oninput="ValidateEmail" />
+                            @if (!string.IsNullOrEmpty(emailError))
+                            {
+                                <div class="text-danger mt-1">@emailError</div>
+                            }
                         </div>
                         
                         <div class="form-group mb-3">
                             <label for="password">Password</label>
-                            <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" />
-                            <ValidationMessage For="@(() => model.Password)" />
+                            <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" @oninput="ValidatePassword" />
+                            @if (!string.IsNullOrEmpty(passwordError))
+                            {
+                                <div class="text-danger mt-1">@passwordError</div>
+                            }
                         </div>
                         
                         @if (!string.IsNullOrEmpty(errorMessage))
@@ -94,25 +99,94 @@
 
 @code {
     private LoginModel model = new();
+    private EditContext editContext = null!;
     private string errorMessage = string.Empty;
     private bool isLoading = false;
     
+    // Field-specific validation messages
+    private string emailError = string.Empty;
+    private string passwordError = string.Empty;
+    private bool isFormValid = false;
+    
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(model);
+        editContext.OnValidationStateChanged += (sender, e) => UpdateFormValidity();
+    }
+    
+    private void UpdateFormValidity()
+    {
+        isFormValid = string.IsNullOrEmpty(emailError) && 
+                      string.IsNullOrEmpty(passwordError) &&
+                      !string.IsNullOrEmpty(model.Email) &&
+                      !string.IsNullOrEmpty(model.Password);
+    }
+    
+    private void ValidateEmail()
+    {
+        emailError = string.Empty;
+        
+        if (string.IsNullOrEmpty(model.Email))
+        {
+            emailError = "Email is required";
+        }
+        else if (!Regex.IsMatch(model.Email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
+        {
+            emailError = "Please enter a valid email address";
+        }
+        
+        UpdateFormValidity();
+    }
+    
+    private void ValidatePassword()
+    {
+        passwordError = string.Empty;
+        
+        if (string.IsNullOrEmpty(model.Password))
+        {
+            passwordError = "Password is required";
+        }
+        
+        UpdateFormValidity();
+    }
+    
     private class LoginModel
     {
-        [Required(ErrorMessage = "Email is required")]
-        [EmailAddress(ErrorMessage = "Invalid email format")]
-        [RegularExpression(@"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", 
-            ErrorMessage = "Please enter a valid email address")]
         public string Email { get; set; } = string.Empty;
-        
-        [Required(ErrorMessage = "Password is required")]
         public string Password { get; set; } = string.Empty;
     }
     
     private async Task HandleValidSubmit()
     {
-        isLoading = true;
+        ValidateEmail();
+        ValidatePassword();
+        
+        if (!isFormValid)
+        {
+            if (string.IsNullOrEmpty(model.Email))
+            {
+                errorMessage = "Email is required.";
+                return;
+            }
+            
+            if (string.IsNullOrEmpty(model.Password))
+            {
+                errorMessage = "Password is required.";
+                return;
+            }
+            
+            if (!string.IsNullOrEmpty(emailError))
+            {
+                errorMessage = "Please enter a valid email address.";
+                return;
+            }
+            
+            errorMessage = "Please fill in all required fields correctly.";
+            return;
+        }
+        
         errorMessage = string.Empty;
+        isLoading = true;
         
         try
         {
@@ -120,11 +194,10 @@
             
             if (result)
             {
-                // Create user session and update auth state
                 var userSession = new UserSession
                 {
                     Email = model.Email,
-                    Roles = new List<string> { "User" } // Default role, should come from API
+                    Roles = new List<string> { "User" }
                 };
                 
                 await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession);
