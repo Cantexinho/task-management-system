@@ -46,9 +46,19 @@ namespace TaskManagementSys.Api.Controllers
         public async Task<IActionResult> Register([FromBody] RegisterModel model)
         {
             if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state during registration: {Errors}", 
+                    string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
                 return BadRequest(ModelState);
+            }
 
-            var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+            var user = new IdentityUser { 
+                UserName = model.Email, 
+                Email = model.Email,
+                EmailConfirmed = true // Automatically confirm email
+            };
+            
+            _logger.LogInformation("Attempting to create user with email: {Email}", model.Email);
             var result = await _userManager.CreateAsync(user, model.Password);
             
             if (result.Succeeded)
@@ -64,12 +74,15 @@ namespace TaskManagementSys.Api.Controllers
                 return Ok(new { message = "User registered successfully" });
             }
             
+            _logger.LogWarning("User registration failed: {Errors}", 
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+            
             foreach (var error in result.Errors)
             {
                 ModelState.AddModelError(string.Empty, error.Description);
             }
             
-            return BadRequest(ModelState);
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
         }
 
         [HttpPost("login")]
