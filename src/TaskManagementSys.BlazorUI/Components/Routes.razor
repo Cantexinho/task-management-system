@@ -1,14 +1,22 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
-                @if (context.User.Identity?.IsAuthenticated != true)
-                {
-                    <TaskManagementSys.BlazorUI.Components.RedirectToLogin />
-                }
-                else
-                {
-                    <p>You are not authorized to access this resource.</p>
+                @{
+                    var returnUrl = Navigation.ToBaseRelativePath(Navigation.Uri);
+                    if (context.User.Identity?.IsAuthenticated != true)
+                    {
+                        if (!returnUrl.StartsWith("login") && !returnUrl.StartsWith("register"))
+                        {
+                            Navigation.NavigateTo($"login");
+                        }
+                    }
+                    else
+                    {
+                        <p>You are not authorized to access this resource.</p>
+                    }
                 }
             </NotAuthorized>
         </AuthorizeRouteView>
@@ -21,3 +29,8 @@
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    [Inject]
+    private NavigationManager Navigation { get; set; } = default!;
+}
