@@ -1,22 +1,101 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
+@using TaskManagementSys.BlazorUI.Services
 @attribute [Authorize]
-
-<PageTitle>Task Management Dashboard</PageTitle>
+@inject TaskService TaskService
+@inject ProjectService ProjectService
 
 <AuthorizeView>
     <Authorized>
-        <h1>Welcome to Task Management System</h1>
-        
         <div class="row mt-4">
-            <div class="col-md-6">
-                <div class="card mb-4">
+            <div class="col-md-12 mb-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h4>Task Board</h4>
+                    </div>
+                    <div class="card-body">
+                        @if (_isLoading)
+                        {
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="kanban-board">
+                                <div class="row">
+                                    <div class="col">
+                                        <KanbanColumn Tasks="_tasks" Status="Todo" Title="Todo" Color="bg-secondary" />
+                                    </div>
+                                    <div class="col">
+                                        <KanbanColumn Tasks="_tasks" Status="InProgress" Title="In Progress" Color="bg-primary" />
+                                    </div>
+                                    <div class="col">
+                                        <KanbanColumn Tasks="_tasks" Status="Review" Title="Review" Color="bg-info" />
+                                    </div>
+                                    <div class="col">
+                                        <KanbanColumn Tasks="_tasks" Status="Completed" Title="Completed" Color="bg-success" />
+                                    </div>
+                                    <div class="col">
+                                        <KanbanColumn Tasks="_tasks" Status="Canceled" Title="Canceled" Color="bg-danger" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card">
                     <div class="card-header">
                         <h4>My Tasks</h4>
                     </div>
                     <div class="card-body">
-                        <p>You have no tasks assigned yet.</p>
-                        <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                        @if (_isLoading)
+                        {
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        }
+                        else if (_tasks.Count == 0)
+                        {
+                            <p>You have no tasks assigned yet.</p>
+                            <a href="/tasks" class="btn btn-primary">Create New Task</a>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Title</th>
+                                            <th>Due Date</th>
+                                            <th>Priority</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var task in _tasks)
+                                        {
+                                            <tr>
+                                                <td>@task.Title</td>
+                                                <td>@(task.DueDate?.ToShortDateString() ?? "-")</td>
+                                                <td><span class="badge @GetPriorityBadgeClass(task.Priority)">@task.Priority</span></td>
+                                                <td><span class="badge @GetStatusBadgeClass(task.Status)">@task.Status</span></td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                        }
                     </div>
                 </div>
             </div>
@@ -27,11 +106,116 @@
                         <h4>My Projects</h4>
                     </div>
                     <div class="card-body">
-                        <p>You have no projects yet.</p>
-                        <a href="/projects" class="btn btn-primary">View All Projects</a>
+                        @if (_isLoading)
+                        {
+                            <div class="text-center">
+                                <div class="spinner-border" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        }
+                        else if (_projects.Count == 0)
+                        {
+                            <p>You have no projects yet.</p>
+                            <a href="/projects" class="btn btn-primary">Create New Project</a>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Status</th>
+                                            <th>Progress</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var project in _projects)
+                                        {
+                                            <tr>
+                                                <td>@project.Name</td>
+                                                <td><span class="badge @GetStatusBadgeClass(project.Status)">@project.Status</span></td>
+                                                <td>
+                                                    <div class="progress">
+                                                        <div class="progress-bar" role="progressbar" style="width: @(project.CompletionPercentage)%;" 
+                                                             aria-valuenow="@project.CompletionPercentage" aria-valuemin="0" aria-valuemax="100">
+                                                            @project.CompletionPercentage%
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <a href="/projects/@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <a href="/projects" class="btn btn-primary">View All Projects</a>
+                        }
                     </div>
                 </div>
             </div>
         </div>
     </Authorized>
 </AuthorizeView>
+
+@code {
+    private List<TaskDto> _tasks = new();
+    private List<ProjectDto> _projects = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            
+            var tasksTask = TaskService.GetUserTasksAsync();
+            var projectsTask = ProjectService.GetUserProjectsAsync();
+
+            await Task.WhenAll(tasksTask, projectsTask);
+            
+            _tasks = await tasksTask;
+            _projects = await projectsTask;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetPriorityBadgeClass(string priority)
+    {
+        return priority switch
+        {
+            "Low" => "bg-secondary",
+            "Medium" => "bg-info",
+            "High" => "bg-warning",
+            "Urgent" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Todo" => "bg-secondary",
+            "InProgress" => "bg-primary",
+            "Review" => "bg-info",
+            "Completed" => "bg-success",
+            "Canceled" => "bg-danger",
+            "Planning" => "bg-secondary",
+            "Active" => "bg-primary",
+            "OnHold" => "bg-warning",
+            _ => "bg-secondary"
+        };
+    }
+}

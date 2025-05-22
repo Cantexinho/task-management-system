@@ -1,0 +1,51 @@
+@namespace TaskManagementSys.BlazorUI.Components
+@using TaskManagementSys.BlazorUI.Services
+
+<div class="kanban-column" style="border: 1px solid #dee2e6; border-radius: 0.25rem; padding: 0 0.75rem 0.75rem 0.75rem;">
+    <div class="kanban-column-header @Color" style="border-top-left-radius: 0.25rem; border-top-right-radius: 0.25rem; margin: 0 -0.75rem; padding: 0 0.75rem;">
+        <h6 style="padding: 0.25rem;">@Title</h6>
+    </div>
+    <div class="kanban-column-body">
+        @foreach (var task in Tasks.Where(t => t.Status == Status))
+        {
+            <div class="kanban-item">
+                <div class="card mb-2">
+                    <div class="card-body py-2 px-3">
+                        <small class="d-block text-truncate">@task.Title</small>
+                        @if (task.DueDate.HasValue)
+                        {
+                            <small class="text-muted d-block">Due: @task.DueDate.Value.ToShortDateString()</small>
+                        }
+                        <span class="badge @GetPriorityBadgeClass(task.Priority)">@task.Priority</span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<TaskDto> Tasks { get; set; } = new List<TaskDto>();
+    
+    [Parameter]
+    public string Status { get; set; } = "";
+    
+    [Parameter]
+    public string Title { get; set; } = "";
+    
+    [Parameter]
+    public string Color { get; set; } = "bg-secondary";
+
+    private string GetPriorityBadgeClass(string priority)
+    {
+        return priority switch
+        {
+            "Low" => "bg-secondary",
+            "Medium" => "bg-info",
+            "High" => "bg-warning",
+            "Urgent" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+} 
