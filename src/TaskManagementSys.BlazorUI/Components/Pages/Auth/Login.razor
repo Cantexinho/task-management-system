@@ -35,7 +35,7 @@
                                     @bind-Value="model.Email" 
                                     class="@($"form-control {(!string.IsNullOrEmpty(emailError) ? "is-invalid" : "")}")"
                                     placeholder="Enter your email"
-                                    @oninput="ValidateEmail" />
+                                    @onblur="ValidateEmail" />
                                 @if (!string.IsNullOrEmpty(emailError))
                                 {
                                     <div class="invalid-feedback">@emailError</div>
@@ -50,7 +50,7 @@
                                     @bind-Value="model.Password" 
                                     class="@($"form-control {(!string.IsNullOrEmpty(passwordError) ? "is-invalid" : "")}")"
                                     placeholder="Enter your password"
-                                    @oninput="ValidatePassword" />
+                                    @onblur="ValidatePassword" />
                                 @if (!string.IsNullOrEmpty(passwordError))
                                 {
                                     <div class="invalid-feedback">@passwordError</div>
