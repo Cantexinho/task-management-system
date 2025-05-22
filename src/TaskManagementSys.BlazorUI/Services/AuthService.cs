@@ -47,6 +47,12 @@ namespace TaskManagementSys.BlazorUI.Services
 
             var response = await _httpClient.PostAsJsonAsync("/api/Account/register", registerData);
             
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Registration failed. Status: {response.StatusCode}, Error: {errorContent}");
+            }
+            
             return response.IsSuccessStatusCode;
         }
 
