@@ -3,64 +3,46 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 
-<div class="top-row ps-3 navbar navbar-dark">
+<nav class="navbar navbar-expand navbar-dark w-100">
     <div class="container-fluid">
         <a class="navbar-brand" href="">Task Management</a>
-    </div>
-</div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
                     <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                         <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
                     </NavLink>
-                </div>
-
-                <div class="nav-item px-3">
+                </li>
+                <li class="nav-item">
                     <NavLink class="nav-link" href="projects">
                         <span class="bi bi-kanban-fill" aria-hidden="true"></span> Projects
                     </NavLink>
-                </div>
-
-                <div class="nav-item px-3">
+                </li>
+                <li class="nav-item">
                     <NavLink class="nav-link" href="tasks">
                         <span class="bi bi-list-task" aria-hidden="true"></span> Tasks
                     </NavLink>
-                </div>
-                
-                <div class="nav-item px-3 mt-3">
-                    <hr/>
-                    <div class="text-light small mb-2">
-                        <span>Signed in as: @context.User.Identity?.Name</span>
-                    </div>
-                    <button class="nav-link" @onclick="HandleLogout">
-                        <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
-                    </button>
-                </div>
-            </Authorized>
-            
-            <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
-                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="register">
-                        <span class="bi bi-person-plus" aria-hidden="true"></span> Register
-                    </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+                </li>
+            </ul>
+            <div class="d-flex">
+                <span class="text-light small me-3 my-auto">@username</span>
+                <button class="btn btn-link nav-link" @onclick="HandleLogout">
+                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
 
 @code {
+    private string? username;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        username = authState.User.Identity?.Name;
+    }
+
     private async Task HandleLogout()
     {
         try

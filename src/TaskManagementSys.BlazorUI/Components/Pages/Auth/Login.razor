@@ -225,7 +225,14 @@
     
     private void LoginWithGoogle()
     {
-        // Redirect to the Google auth endpoint
-        Navigation.NavigateTo($"{AuthService.BaseUrl}/api/Account/external-login?provider=Google", true);
+        var currentBaseUrl = Navigation.BaseUri.TrimEnd('/');
+        
+        // Use the correct API URL (port 5000)
+        var apiUrl = "http://localhost:5000";
+        
+        var returnUrl = $"{currentBaseUrl}/external-login-callback";
+        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+        
+        Navigation.NavigateTo($"{apiUrl}/api/Account/external-login?provider=Google&returnUrl={encodedReturnUrl}", true);
     }
 } 
