@@ -162,6 +162,15 @@ namespace TaskManagementSys.Api.Controllers
             if (result.Succeeded)
             {
                 _logger.LogInformation("User logged in with {Name} provider", info.LoginProvider);
+                // Get the email to pass back to the client
+                var userEmail = info.Principal.FindFirstValue(ClaimTypes.Email);
+                
+                if (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(returnUrl))
+                {
+                    var separator = returnUrl.Contains("?") ? "&" : "?";
+                    returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(userEmail)}";
+                }
+                
                 return Redirect(returnUrl ?? "/");
             }
             
@@ -194,6 +203,12 @@ namespace TaskManagementSys.Api.Controllers
                 await _signInManager.SignInAsync(user, isPersistent: false);
                 
                 _logger.LogInformation("User created an account using {Name} provider", info.LoginProvider);
+                
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    var separator = returnUrl.Contains("?") ? "&" : "?";
+                    returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(email)}";
+                }
                 
                 return Redirect(returnUrl ?? "/");
             }
