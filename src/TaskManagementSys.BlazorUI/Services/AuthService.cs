@@ -60,6 +60,26 @@ namespace TaskManagementSys.BlazorUI.Services
         {
             await _httpClient.PostAsync("/api/Account/logout", null);
         }
+        
+        public async Task<UserInfo?> GetUserInfoAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("/api/Account/user-info");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<UserInfo>();
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting user info: {ex.Message}");
+                return null;
+            }
+        }
     }
 
     public class LoginResponse
