@@ -1,4 +1,6 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
 
 <PageTitle>Task Management Dashboard</PageTitle>
 
@@ -32,12 +34,4 @@
             </div>
         </div>
     </Authorized>
-    <NotAuthorized>
-        <div class="text-center mt-5">
-            <h1>Welcome to Task Management System</h1>
-            <p class="lead">Please log in to access your tasks and projects.</p>
-            <a href="/login" class="btn btn-primary me-2">Login</a>
-            <a href="/register" class="btn btn-secondary">Register</a>
-        </div>
-    </NotAuthorized>
 </AuthorizeView>

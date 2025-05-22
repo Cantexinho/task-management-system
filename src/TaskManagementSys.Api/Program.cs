@@ -6,9 +6,19 @@ using TaskManagementSys.Infrastructure;
 using TaskManagementSys.Infrastructure.Configuration;
 using TaskManagementSys.Infrastructure.Data;
 
-Env.Load();
+// TODO: Temp and not cool code 
+var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+Console.WriteLine($"Looking for .env file at: {envPath}");
+Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure logging
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+builder.Logging.AddFilter("TaskManagementSys.Api.Controllers", LogLevel.Debug);
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -35,7 +45,8 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
     
     // User settings
     options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedAccount = true;
+    options.SignIn.RequireConfirmedAccount = false;
+    options.SignIn.RequireConfirmedEmail = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -62,7 +73,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5010")
+        policy.WithOrigins(
+                "http://localhost:5010",
+                "https://localhost:5010",
+                "http://localhost:5011",
+                "https://localhost:5011"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

@@ -1,101 +1,103 @@
+@inherits Microsoft.AspNetCore.Components.ComponentBase
 @page "/login"
+@layout TaskManagementSys.BlazorUI.Components.Layout.AuthLayout
 @using TaskManagementSys.BlazorUI.Services
 @using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using System.ComponentModel.DataAnnotations
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Login</PageTitle>
 
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="text-center">Login</h3>
-                </div>
-                <div class="card-body">
-                    <EditForm EditContext="@editContext" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
-                        
-                        <div class="form-group mb-3">
-                            <label for="email">Email</label>
-                            <InputText id="email" @bind-Value="model.Email" class="form-control" @oninput="ValidateEmail" />
-                            @if (!string.IsNullOrEmpty(emailError))
-                            {
-                                <div class="text-danger mt-1">@emailError</div>
-                            }
-                        </div>
-                        
-                        <div class="form-group mb-3">
-                            <label for="password">Password</label>
-                            <InputText id="password" @bind-Value="model.Password" type="password" class="form-control" @oninput="ValidatePassword" />
-                            @if (!string.IsNullOrEmpty(passwordError))
-                            {
-                                <div class="text-danger mt-1">@passwordError</div>
-                            }
-                        </div>
-                        
-                        @if (!string.IsNullOrEmpty(errorMessage))
-                        {
-                            <div class="alert alert-danger mt-3">
-                                @errorMessage
+<link href="css/auth.css" rel="stylesheet" />
+
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-content">
+            <div class="text-center mb-4">
+                <img src="images/logo.png" class="img-fluid rounded mb-3" style="max-width: 112px;" />
+                <h4 class="fw-semibold">Task Management System</h4>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit" FormName="loginForm">
+                        <div class="form-fields-container">
+                            <div class="form-group mb-3">
+                                <label for="email" class="form-label mb-2">Email address</label>
+                                <InputText 
+                                    id="email" 
+                                    @bind-Value="model.Email" 
+                                    class="@($"form-control {(!string.IsNullOrEmpty(emailError) ? "is-invalid" : "")}")"
+                                    placeholder="Enter your email"
+                                    @oninput="ValidateEmail" />
+                                @if (!string.IsNullOrEmpty(emailError))
+                                {
+                                    <div class="invalid-feedback">@emailError</div>
+                                }
                             </div>
-                        }
-                        
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary" disabled="@isLoading">
-                                @if (isLoading)
+
+                            <div class="form-group mb-4">
+                                <label for="password" class="form-label mb-2">Password</label>
+                                <InputText 
+                                    id="password" 
+                                    type="password" 
+                                    @bind-Value="model.Password" 
+                                    class="@($"form-control {(!string.IsNullOrEmpty(passwordError) ? "is-invalid" : "")}")"
+                                    placeholder="Enter your password"
+                                    @oninput="ValidatePassword" />
+                                @if (!string.IsNullOrEmpty(passwordError))
                                 {
-                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                    <span> Loading...</span>
+                                    <div class="invalid-feedback">@passwordError</div>
                                 }
-                                else
-                                {
-                                    <span>Login</span>
-                                }
-                            </button>
+                            </div>
                         </div>
-                        
-                        <div class="text-center mt-3">
-                            <div class="separator mb-3">Or login with</div>
-                            <button type="button" class="btn btn-outline-danger" @onclick="LoginWithGoogle">
-                                <i class="bi bi-google"></i> Google
-                            </button>
+
+                        <div class="form-buttons-container">
+                            <div class="button-container mb-3">
+                                <button type="submit" class="btn btn-primary py-2" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                                        <span>Logging in...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Log in</span>
+                                    }
+                                </button>
+                            </div>
+
+                            <div class="divider-container">
+                                <div class="divider-line"></div>
+                                <div class="divider-text">or</div>
+                            </div>
+
+                            <div class="button-container">
+                                <button type="button" 
+                                        class="btn btn-outline-secondary py-2"
+                                        @onclick="LoginWithGoogle">
+                                    <i class="bi bi-google me-2"></i> Sign in with Google
+                                </button>
+                            </div>
+
+                            <div class="auth-link-container mt-4">
+                                <a href="register" class="text-decoration-none">
+                                    Don't have an account? Sign up here!
+                                </a>
+                            </div>
                         </div>
                     </EditForm>
-                </div>
-                <div class="card-footer text-center">
-                    <span>Don't have an account? </span>
-                    <a href="register">Register here</a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    .separator {
-        display: flex;
-        align-items: center;
-        text-align: center;
-        color: #6c757d;
-    }
-
-    .separator::before,
-    .separator::after {
-        content: '';
-        flex: 1;
-        border-bottom: 1px solid #dee2e6;
-    }
-
-    .separator::before {
-        margin-right: .25em;
-    }
-
-    .separator::after {
-        margin-left: .25em;
-    }
-</style>
 
 @code {
     private LoginModel model = new();
@@ -108,10 +110,12 @@
     private string passwordError = string.Empty;
     private bool isFormValid = false;
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         editContext = new EditContext(model);
         editContext.OnValidationStateChanged += (sender, e) => UpdateFormValidity();
+        
+        await JSRuntime.InvokeVoidAsync("eval", "document.title = 'Login'");
     }
     
     private void UpdateFormValidity()
@@ -221,7 +225,14 @@
     
     private void LoginWithGoogle()
     {
-        // Redirect to the Google auth endpoint
-        Navigation.NavigateTo($"{AuthService.BaseUrl}/api/Account/external-login?provider=Google", true);
+        var currentBaseUrl = Navigation.BaseUri.TrimEnd('/');
+        
+        // Use the correct API URL (port 5000)
+        var apiUrl = "http://localhost:5000";
+        
+        var returnUrl = $"{currentBaseUrl}/external-login-callback";
+        var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
+        
+        Navigation.NavigateTo($"{apiUrl}/api/Account/external-login?provider=Google&returnUrl={encodedReturnUrl}", true);
     }
 } 
