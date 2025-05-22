@@ -6,7 +6,10 @@ using TaskManagementSys.Infrastructure;
 using TaskManagementSys.Infrastructure.Configuration;
 using TaskManagementSys.Infrastructure.Data;
 
-Env.Load();
+// TODO: Temp and not cool code 
+var envPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "..", ".env"));
+Console.WriteLine($"Looking for .env file at: {envPath}");
+Env.Load(envPath);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,7 +65,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5010")
+        policy.WithOrigins("http://localhost:5010", "https://localhost:5010")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
