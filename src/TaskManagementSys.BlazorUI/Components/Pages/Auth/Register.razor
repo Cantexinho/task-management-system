@@ -28,7 +28,7 @@
             <div class="card shadow-sm border-0">
                 <div class="card-body p-4">
                     <EditForm Model="@model" OnValidSubmit="@HandleValidSubmit" FormName="registerForm">
-                        @if (!string.IsNullOrEmpty(errorMessage))
+                        @if (!string.IsNullOrEmpty(errorMessage) && isServerError)
                         {
                             <div class="alert alert-danger mb-3">
                                 @errorMessage
@@ -127,6 +127,7 @@
     private string passwordError = string.Empty;
     private string confirmPasswordError = string.Empty;
     private bool isFormValid = false;
+    private bool isServerError = false;
 
     private class RegisterModel
     {
@@ -152,78 +153,95 @@
             if (string.IsNullOrEmpty(model.Email))
             {
                 emailError = "Email is required";
-                errorMessage = emailError;
                 return;
             }
 
             if (!System.Text.RegularExpressions.Regex.IsMatch(model.Email, @"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"))
             {
                 emailError = "Please enter a valid email address";
-                errorMessage = emailError;
                 return;
             }
 
             if (string.IsNullOrEmpty(model.Password))
             {
                 passwordError = "Password is required";
-                errorMessage = passwordError;
+                return;
+            }
+
+            // Password validation
+            if (model.Password.Length < 8 ||
+                !model.Password.Any(char.IsUpper) ||
+                !model.Password.Any(char.IsLower) ||
+                !model.Password.Any(char.IsDigit) ||
+                !model.Password.Any(ch => !char.IsLetterOrDigit(ch)))
+            {
+                passwordError = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character";
                 return;
             }
 
             if (string.IsNullOrEmpty(model.ConfirmPassword))
             {
                 confirmPasswordError = "Please confirm your password";
-                errorMessage = confirmPasswordError;
                 return;
             }
 
             if (model.Password != model.ConfirmPassword)
             {
                 confirmPasswordError = "Passwords do not match";
-                errorMessage = confirmPasswordError;
                 return;
             }
 
             isLoading = true;
             StateHasChanged();
             
-            var result = await RegistrationService.RegisterAsync(model.Email, model.Password, model.ConfirmPassword);
-            
-            if (result)
+            try 
             {
-                var userSession = new UserSession
-                {
-                    Email = model.Email,
-                    Roles = new List<string> { "User" }
-                };
+                var result = await RegistrationService.RegisterAsync(model.Email, model.Password, model.ConfirmPassword);
                 
-                var authProvider = (CustomAuthStateProvider)AuthStateProvider;
-                if (authProvider != null)
+                if (result)
                 {
-                    await authProvider.UpdateAuthenticationState(userSession);
-                    Navigation.NavigateTo("/");
+                    var userSession = new UserSession
+                    {
+                        Email = model.Email,
+                        Roles = new List<string> { "User" }
+                    };
+                    
+                    var authProvider = (CustomAuthStateProvider)AuthStateProvider;
+                    if (authProvider != null)
+                    {
+                        await authProvider.UpdateAuthenticationState(userSession);
+                        Navigation.NavigateTo("/");
+                    }
+                    else
+                    {
+                        errorMessage = "Authentication provider not available.";
+                        isServerError = true;
+                        Logger.LogError("Authentication provider not available");
+                    }
                 }
                 else
                 {
-                    errorMessage = "Authentication provider not available.";
-                    Logger.LogError("Authentication provider not available");
+                    errorMessage = "Registration failed. Please try again or use a different email.";
+                    isServerError = true;
+                    Logger.LogWarning("Registration failed");
                 }
             }
-            else
+            catch (Exception ex)
             {
-                errorMessage = "Registration failed. Please try again or use a different email.";
-                Logger.LogWarning("Registration failed");
+                errorMessage = "An error occurred during registration. Please try again.";
+                isServerError = true;
+                Logger.LogError(ex, "Registration error");
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged();
             }
         }
         catch (Exception ex)
         {
             errorMessage = "An error occurred during registration. Please try again.";
             Logger.LogError(ex, "Registration error");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
         }
     }
     
