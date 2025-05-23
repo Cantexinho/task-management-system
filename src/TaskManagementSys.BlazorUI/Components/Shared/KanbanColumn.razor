@@ -1,14 +1,18 @@
 @namespace TaskManagementSys.BlazorUI.Components
 @using TaskManagementSys.BlazorUI.Services
 
-<div class="kanban-column">
+<div class="kanban-column @(isDragOver ? "drag-over" : "")" 
+     ondragover="event.preventDefault();"
+     @ondragenter="HandleDragEnter"
+     @ondragleave="HandleDragLeave"
+     @ondrop="HandleDrop">
     <div class="kanban-column-header @Color">
         <h6 class="mb-0 py-2">@Title</h6>
     </div>
     <div class="kanban-column-body">
         @foreach (var task in Tasks.Where(t => t.Status == Status))
         {
-            <div class="kanban-item">
+            <div class="kanban-item" draggable="true" @ondragstart="@(() => HandleDragStart(task))">
                 <div class="card">
                     <div class="card-body py-2 px-3">
                         <small class="d-block text-truncate">@task.Title</small>
@@ -36,6 +40,62 @@
     
     [Parameter]
     public string Color { get; set; } = "bg-secondary";
+
+    [Parameter]
+    public EventCallback<(TaskDto Task, string NewStatus)> OnTaskStatusChanged { get; set; }
+
+    [Inject]
+    private TaskService TaskService { get; set; } = default!;
+
+    private static TaskDto? draggedTask;
+    private bool isDragOver;
+
+    private void HandleDragStart(TaskDto task)
+    {
+        draggedTask = task;
+    }
+
+    private void HandleDragEnter()
+    {
+        if (draggedTask?.Status != Status)
+        {
+            isDragOver = true;
+            StateHasChanged();
+        }
+    }
+
+    private void HandleDragLeave()
+    {
+        isDragOver = false;
+        StateHasChanged();
+    }
+
+    private async Task HandleDrop()
+    {
+        isDragOver = false;
+        
+        if (draggedTask != null && draggedTask.Status != Status)
+        {
+            var originalStatus = draggedTask.Status;
+            draggedTask.Status = Status;
+            
+            var success = await TaskService.UpdateTaskAsync(draggedTask);
+            
+            if (success)
+            {
+                await OnTaskStatusChanged.InvokeAsync((draggedTask, Status));
+            }
+            else
+            {
+                // Revert the status if update failed
+                draggedTask.Status = originalStatus;
+            }
+            
+            draggedTask = null;
+        }
+        
+        StateHasChanged();
+    }
 
     private string GetPriorityBadgeClass(string priority)
     {

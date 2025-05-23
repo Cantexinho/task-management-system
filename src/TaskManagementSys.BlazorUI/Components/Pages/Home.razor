@@ -27,19 +27,19 @@
                             <div class="kanban-board">
                                 <div class="row align-items-stretch">
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Todo" Title="Todo" Color="bg-secondary" />
+                                        <KanbanColumn Tasks="_tasks" Status="Todo" Title="Todo" Color="bg-secondary" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="InProgress" Title="In Progress" Color="bg-primary" />
+                                        <KanbanColumn Tasks="_tasks" Status="InProgress" Title="In Progress" Color="bg-primary" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Review" Title="Review" Color="bg-info" />
+                                        <KanbanColumn Tasks="_tasks" Status="Review" Title="Review" Color="bg-info" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Completed" Title="Completed" Color="bg-success" />
+                                        <KanbanColumn Tasks="_tasks" Status="Completed" Title="Completed" Color="bg-success" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Canceled" Title="Canceled" Color="bg-danger" />
+                                        <KanbanColumn Tasks="_tasks" Status="Canceled" Title="Canceled" Color="bg-danger" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                 </div>
                             </div>
@@ -240,5 +240,24 @@
             "OnHold" => "bg-warning",
             _ => "bg-secondary"
         };
+    }
+
+    private async Task HandleTaskStatusChanged((TaskDto Task, string NewStatus) update)
+    {
+        try
+        {
+            var (task, newStatus) = update;
+            task.Status = newStatus;
+            await TaskService.UpdateTaskAsync(task);
+            
+            // Refresh the task list to reflect the changes
+            _tasks = await TaskService.GetUserTasksAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating task status: {ex.Message}");
+            // Here you might want to add proper error handling, like showing a notification to the user
+        }
     }
 }
