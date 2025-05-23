@@ -114,7 +114,6 @@ namespace TaskManagementSys.Api.Controllers
                     return BadRequest(ModelState);
                 }
                 
-                // current user is the creator
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 if (userId == null)
                 {
@@ -148,6 +147,7 @@ namespace TaskManagementSys.Api.Controllers
                     }
                 }
                 
+                // Get the creator user info for response
                 var creator = await _userManager.FindByIdAsync(userId);
                 var response = createdTask.ToResponse(creator);
                 
