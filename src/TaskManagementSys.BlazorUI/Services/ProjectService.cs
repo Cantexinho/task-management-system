@@ -15,7 +15,7 @@ namespace TaskManagementSys.BlazorUI.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync("/api/Projects/my-projects");
+                var response = await _httpClient.GetAsync("/api/Projects/");
                 
                 if (response.IsSuccessStatusCode)
                 {
