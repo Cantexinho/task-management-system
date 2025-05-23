@@ -13,9 +13,19 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RegistrationService>();
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<ProjectService>();
-builder.Services.AddScoped(sp => new HttpClient 
-{ 
-    BaseAddress = new Uri(builder.Configuration["ApiBaseUrl"] ?? "https://localhost:7077") 
+
+var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5000";
+Console.WriteLine($"API Base URL configured as: {apiBaseUrl}");
+
+// Configure HttpClient to include credentials and support cross-origin requests
+builder.Services.AddScoped(sp => 
+{
+    var httpClient = new HttpClient { BaseAddress = new Uri(apiBaseUrl) };
+    
+    // Configure to include credentials (cookies) with requests
+    httpClient.DefaultRequestHeaders.Add("X-Requested-With", "XMLHttpRequest");
+    
+    return httpClient;
 });
 
 builder.Services.AddAuthorizationCore();
