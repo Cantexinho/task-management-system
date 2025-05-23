@@ -101,10 +101,15 @@ namespace TaskManagementSys.Api.Controllers
                 {
                     var roles = await _userManager.GetRolesAsync(user);
                     
+                    // Generate a simple auth token (user ID for development)
+                    var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{user.Id}:{user.Email}"));
+                    
                     return Ok(new { 
                         message = "Login successful",
+                        authToken = authToken, // Add auth token for cross-origin requests
                         user = new {
                             email = user.Email,
+                            userName = user.UserName,
                             roles = roles
                         }
                     });
