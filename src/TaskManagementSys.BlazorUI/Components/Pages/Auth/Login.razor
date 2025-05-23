@@ -194,27 +194,37 @@
         
         try
         {
-            var result = await AuthService.LoginAsync(model.Email, model.Password);
+            Console.WriteLine($"Attempting login for: {model.Email}");
+            var loginResult = await AuthService.LoginAsync(model.Email, model.Password);
             
-            if (result)
+            Console.WriteLine($"Login result: {(loginResult.userInfo != null ? "Success" : "Failed")}");
+            
+            if (loginResult.userInfo != null && !string.IsNullOrEmpty(loginResult.authToken))
             {
+                Console.WriteLine($"User info received: Email={loginResult.userInfo.Email}, Roles={string.Join(",", loginResult.userInfo.Roles)}");
+                
                 var userSession = new UserSession
                 {
-                    Email = model.Email,
-                    Roles = new List<string> { "User" }
+                    Email = loginResult.userInfo.Email,
+                    UserId = loginResult.userInfo.UserName,
+                    Roles = loginResult.userInfo.Roles ?? new List<string>()
                 };
                 
-                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession);
+                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession, loginResult.authToken);
                 
+                Console.WriteLine("Authentication state updated, redirecting...");
                 Navigation.NavigateTo("/");
             }
             else
             {
+                Console.WriteLine("Login failed - userInfo or authToken is null");
                 errorMessage = "Invalid login attempt. Please check your email and password.";
             }
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"Login exception: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
             errorMessage = $"An error occurred: {ex.Message}";
         }
         finally
