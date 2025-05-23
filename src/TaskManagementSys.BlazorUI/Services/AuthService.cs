@@ -16,7 +16,7 @@ namespace TaskManagementSys.BlazorUI.Services
             _httpClient = httpClient;
         }
 
-        public async Task<bool> LoginAsync(string email, string password)
+        public async Task<(UserInfo? userInfo, string? authToken)> LoginAsync(string email, string password)
         {
             var loginData = new
             {
@@ -25,15 +25,36 @@ namespace TaskManagementSys.BlazorUI.Services
                 RememberMe = false
             };
 
+            Console.WriteLine($"Sending login request to: {_httpClient.BaseAddress}/api/Account/login");
             var response = await _httpClient.PostAsJsonAsync("/api/Account/login", loginData);
+            
+            Console.WriteLine($"Login response status: {response.StatusCode}");
             
             if (response.IsSuccessStatusCode)
             {
-                var content = await response.Content.ReadFromJsonAsync<LoginResponse>();
-                return true;
+                var loginResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                Console.WriteLine($"Login response received: {loginResponse?.Message}");
+                
+                if (loginResponse?.User != null)
+                {
+                    var userInfo = new UserInfo
+                    {
+                        Email = loginResponse.User.Email,
+                        UserName = loginResponse.User.UserName,
+                        Roles = loginResponse.User.Roles ?? new List<string>()
+                    };
+                    
+                    Console.WriteLine($"User info extracted: Email={userInfo.Email}");
+                    return (userInfo, loginResponse.AuthToken);
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Login failed with status {response.StatusCode}: {errorContent}");
             }
             
-            return false;
+            return (null, null);
         }
 
         public async Task<bool> RegisterAsync(string email, string password, string confirmPassword)
@@ -80,17 +101,35 @@ namespace TaskManagementSys.BlazorUI.Services
                 return null;
             }
         }
+
+        public void SetAuthToken(string? token)
+        {
+            _httpClient.DefaultRequestHeaders.Remove("X-Auth-Token");
+            if (!string.IsNullOrEmpty(token))
+            {
+                _httpClient.DefaultRequestHeaders.Add("X-Auth-Token", token);
+            }
+        }
     }
 
     public class LoginResponse
     {
         public string Message { get; set; } = string.Empty;
-        public UserInfo User { get; set; } = new UserInfo();
+        public string AuthToken { get; set; } = string.Empty;
+        public UserData User { get; set; } = new UserData();
+    }
+
+    public class UserData
+    {
+        public string Email { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
+        public List<string> Roles { get; set; } = new List<string>();
     }
 
     public class UserInfo
     {
         public string Email { get; set; } = string.Empty;
+        public string UserName { get; set; } = string.Empty;
         public List<string> Roles { get; set; } = new List<string>();
     }
 } 

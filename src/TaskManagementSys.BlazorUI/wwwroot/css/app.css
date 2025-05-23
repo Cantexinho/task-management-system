@@ -1,0 +1,45 @@
+/* Kanban Board Styles */
+.kanban-board {
+    overflow-x: auto;
+}
+
+.kanban-column {
+    min-height: 200px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    background-color: #f8f9fa;
+    height: 100%;
+}
+
+.kanban-column-header {
+    padding: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: 0.25rem;
+    border-top-right-radius: 0.25rem;
+    color: white;
+    font-weight: bold;
+}
+
+.kanban-column-body {
+    padding: 0.5rem;
+    min-height: 150px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.kanban-item {
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+}
+
+.kanban-item .card {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.kanban-item .card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Other app styles below */ 

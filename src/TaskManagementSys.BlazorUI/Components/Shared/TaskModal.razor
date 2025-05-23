@@ -1,0 +1,310 @@
+@using TaskManagementSys.BlazorUI.Services
+@using TaskManagementSys.Core.Entities
+@using System.ComponentModel.DataAnnotations
+@inject TaskService TaskService
+@inject ProjectService ProjectService
+
+<div class="modal fade @(_isVisible ? "show" : "")" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" 
+     style="display: @(_isVisible ? "block" : "none");" aria-modal="@_isVisible" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalLabel">@(_isEditing ? "Edit Task" : "Create New Task")</h5>
+                <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @if (!string.IsNullOrEmpty(_successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        @_successMessage
+                        <button type="button" class="btn-close" @onclick="() => _successMessage = null" aria-label="Close"></button>
+                    </div>
+                }
+                
+                @if (!string.IsNullOrEmpty(_errorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @_errorMessage
+                        <button type="button" class="btn-close" @onclick="() => _errorMessage = null" aria-label="Close"></button>
+                    </div>
+                }
+                
+                <EditForm Model="@_createTaskDto" OnValidSubmit="HandleValidSubmit">
+                    <DataAnnotationsValidator />
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title</label>
+                        <InputText id="title" class="@GetInputClass("title")" @bind-Value="_createTaskDto.Title" />
+                        <ValidationMessage For="@(() => _createTaskDto.Title)" />
+                        @if (HasError("title"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("title"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <InputTextArea id="description" class="@GetInputClass("description")" @bind-Value="_createTaskDto.Description" />
+                        <ValidationMessage For="@(() => _createTaskDto.Description)" />
+                        @if (HasError("description"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("description"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dueDate" class="form-label">Due Date</label>
+                        <InputDate id="dueDate" class="@GetInputClass("dueDate")" @bind-Value="_createTaskDto.DueDate" />
+                        <ValidationMessage For="@(() => _createTaskDto.DueDate)" />
+                        @if (HasError("dueDate"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("dueDate"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Priority</label>
+                        <InputSelect id="priority" class="@GetSelectClass("priority")" @bind-Value="_createTaskDto.Priority">
+                            <option value="@TaskPriority.Low">Low</option>
+                            <option value="@TaskPriority.Medium">Medium</option>
+                            <option value="@TaskPriority.High">High</option>
+                            <option value="@TaskPriority.Urgent">Urgent</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _createTaskDto.Priority)" />
+                        @if (HasError("priority"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("priority"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="project" class="form-label">Project (Optional)</label>
+                        <InputSelect id="project" class="@GetSelectClass("projectId")" @bind-Value="_createTaskDto.ProjectId">
+                            <option value="">-- None --</option>
+                            @foreach (var project in _projects)
+                            {
+                                <option value="@project.Id">@project.Name</option>
+                            }
+                        </InputSelect>
+                        @if (HasError("projectId"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("projectId"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                            @if (_isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                <span> Saving...</span>
+                            }
+                            else
+                            {
+                                <span>@(_isEditing ? "Update Task" : "Create Task")</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_isVisible)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private bool _isVisible = false;
+    private bool _isSubmitting = false;
+    private bool _isEditing = false;
+    private string? _errorMessage;
+    private string? _successMessage;
+    private Dictionary<string, List<string>> _validationErrors = new();
+    private List<ProjectDto> _projects = new();
+    private CreateTaskDto _createTaskDto = new();
+    
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+    
+    [Parameter]
+    public EventCallback<TaskDto> OnTaskCreated { get; set; }
+    
+    private bool HasError(string fieldName)
+    {
+        return _validationErrors.ContainsKey(fieldName.ToLower()) || 
+               _validationErrors.ContainsKey(char.ToUpper(fieldName[0]) + fieldName.Substring(1));
+    }
+    
+    private string GetInputClass(string fieldName)
+    {
+        return HasError(fieldName) ? "form-control is-invalid" : "form-control";
+    }
+    
+    private string GetSelectClass(string fieldName)
+    {
+        return HasError(fieldName) ? "form-select is-invalid" : "form-select";
+    }
+    
+    private List<string> GetErrors(string fieldName)
+    {
+        var lowerField = fieldName.ToLower();
+        if (_validationErrors.ContainsKey(lowerField))
+        {
+            return _validationErrors[lowerField];
+        }
+        
+        var pascalCase = char.ToUpper(fieldName[0]) + fieldName.Substring(1);
+        if (_validationErrors.ContainsKey(pascalCase))
+        {
+            return _validationErrors[pascalCase];
+        }
+        
+        return new List<string>();
+    }
+    
+    public async Task ShowModal()
+    {
+        _createTaskDto = new CreateTaskDto 
+        { 
+            Status = TaskItemStatus.Todo,
+            Priority = TaskPriority.Medium,
+            CategoryIds = new List<int>(),
+            AssigneeIds = new List<string>()
+        };
+        _errorMessage = null;
+        _successMessage = null;
+        _validationErrors.Clear();
+        _isVisible = true;
+        _isSubmitting = false;
+        _isEditing = false;
+        await LoadProjects();
+        StateHasChanged();
+    }
+    
+    private async Task LoadProjects()
+    {
+        _projects = await ProjectService.GetUserProjectsAsync();
+    }
+    
+    private async Task CloseModal()
+    {
+        _isVisible = false;
+        await OnClose.InvokeAsync(false);
+    }
+    
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            _isSubmitting = true;
+            _errorMessage = null;
+            _successMessage = null;
+            _validationErrors.Clear();
+            StateHasChanged();
+            
+            Console.WriteLine($"Submitting task: {_createTaskDto.Title}, Priority: {_createTaskDto.Priority}, Status: {_createTaskDto.Status}");
+            
+            // Call the service and get the response tuple
+            var response = await TaskService.CreateTaskAsync(_createTaskDto);
+            
+            // Extract individual parts from the tuple
+            var (taskResult, errors) = response;
+            
+            Console.WriteLine($"Task creation response - Task: {taskResult?.Title ?? "null"}, Errors: {errors.Count}");
+            
+            // Update validation errors
+            _validationErrors = errors;
+            
+            if (errors.Count > 0)
+            {
+                Console.WriteLine("Validation errors:");
+                foreach (var err in errors)
+                {
+                    Console.WriteLine($"  {err.Key}: {string.Join(", ", err.Value)}");
+                }
+                
+                // Display general error message if there's an entry with empty key
+                if (errors.ContainsKey("") && errors[""].Count > 0)
+                {
+                    _errorMessage = string.Join(", ", errors[""]);
+                }
+                // Otherwise create a general error about validation
+                else if (errors.Count > 0)
+                {
+                    _errorMessage = "Please correct the validation errors.";
+                }
+                
+                StateHasChanged();
+                return;
+            }
+            
+            if (taskResult != null)
+            {
+                _successMessage = $"Task '{taskResult.Title}' created successfully!";
+                await OnTaskCreated.InvokeAsync(taskResult);
+                
+                // Reset form after successful creation
+                _createTaskDto = new CreateTaskDto();
+                StateHasChanged();
+                
+                // Close after a short delay to allow the user to see the success message
+                await Task.Delay(1500);
+                await CloseModal();
+            }
+            else
+            {
+                _errorMessage = "Failed to create task. Please try again.";
+            }
+            
+            // Simply show validation errors without global error message
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating task: {ex.Message}");
+            Console.WriteLine($"Stack trace: {ex.StackTrace}");
+            // Add error to a specific field or as a general validation error
+            if (!_validationErrors.ContainsKey(""))
+            {
+                _validationErrors[""] = new List<string>();
+            }
+            _validationErrors[""].Add($"Error: {ex.Message}");
+            _errorMessage = $"Error: {ex.Message}";
+            StateHasChanged();
+        }
+        finally
+        {
+            _isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+} 
