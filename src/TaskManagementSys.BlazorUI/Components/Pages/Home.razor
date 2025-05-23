@@ -67,7 +67,7 @@
                         else if (_tasks.Count == 0)
                         {
                             <p>You have no tasks assigned yet.</p>
-                            <a href="/tasks" class="btn btn-primary">Create New Task</a>
+                            <button @onclick="ShowTaskModal" class="btn btn-primary">Create New Task</button>
                         }
                         else
                         {
@@ -94,7 +94,10 @@
                                     </tbody>
                                 </table>
                             </div>
-                            <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                            <div class="d-flex justify-content-between">
+                                <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                                <button @onclick="ShowTaskModal" class="btn btn-success">Create New Task</button>
+                            </div>
                         }
                     </div>
                 </div>
@@ -159,6 +162,8 @@
                 </div>
             </div>
         </div>
+        
+        <TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnClose="OnModalClosed" />
     </Authorized>
 </AuthorizeView>
 
@@ -166,6 +171,7 @@
     private List<TaskDto> _tasks = new();
     private List<ProjectDto> _projects = new();
     private bool _isLoading = true;
+    private TaskModal? _taskModal;
 
     protected override async Task OnInitializedAsync()
     {
@@ -189,6 +195,23 @@
         {
             _isLoading = false;
         }
+    }
+    
+    private void ShowTaskModal()
+    {
+        _taskModal?.ShowModal();
+    }
+    
+    private async Task OnTaskCreated(TaskDto task)
+    {
+        // Refresh the task list
+        _tasks = await TaskService.GetUserTasksAsync();
+        StateHasChanged();
+    }
+    
+    private void OnModalClosed(bool value)
+    {
+        // Modal closed callback
     }
 
     private string GetPriorityBadgeClass(string priority)
