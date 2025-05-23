@@ -47,8 +47,7 @@
     {
         try
         {
-            await AuthService.LogoutAsync();
-            await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(null);
+            await ((CustomAuthStateProvider)AuthStateProvider).LogoutAsync();
             Navigation.NavigateTo("/login");
         }
         catch
