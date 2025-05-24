@@ -199,18 +199,25 @@ app.Use(async (context, next) =>
         {
             var decodedToken = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(authToken.ToString()));
             var parts = decodedToken.Split(':');
-            if (parts.Length == 2)
+            if (parts.Length >= 3)  // Now expecting userId:email:roles
             {
                 var userId = parts[0];
                 var email = parts[1];
+                var roles = parts[2].Split(',', StringSplitOptions.RemoveEmptyEntries);
                 
-                // Create a simple claims identity
-                var claims = new[]
+                // Create claims list with roles
+                var claims = new List<System.Security.Claims.Claim>
                 {
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, userId),
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, email),
                     new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, email)
                 };
+                
+                // Add role claims
+                foreach (var role in roles)
+                {
+                    claims.Add(new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Role, role));
+                }
                 
                 var identity = new System.Security.Claims.ClaimsIdentity(claims, "TokenAuth");
                 context.User = new System.Security.Claims.ClaimsPrincipal(identity);

@@ -101,8 +101,10 @@ namespace TaskManagementSys.Api.Controllers
                 {
                     var roles = await _userManager.GetRolesAsync(user);
                     
-                    // Generate a simple auth token (user ID for development)
-                    var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{user.Id}:{user.Email}"));
+                    // Generate a simple auth token (user ID and roles for development)
+                    var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                        $"{user.Id}:{user.Email}:{string.Join(",", roles)}"
+                    ));
                     
                     return Ok(new { 
                         message = "Login successful",
@@ -169,11 +171,25 @@ namespace TaskManagementSys.Api.Controllers
                 _logger.LogInformation("User logged in with {Name} provider", info.LoginProvider);
                 // Get the email to pass back to the client
                 var userEmail = info.Principal.FindFirstValue(ClaimTypes.Email);
-                
-                if (!string.IsNullOrEmpty(userEmail) && !string.IsNullOrEmpty(returnUrl))
+                if (string.IsNullOrEmpty(userEmail))
                 {
-                    var separator = returnUrl.Contains("?") ? "&" : "?";
-                    returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(userEmail)}";
+                    return BadRequest(new { message = "Email not provided by external provider" });
+                }
+                
+                var user = await _userManager.FindByEmailAsync(userEmail);
+                
+                if (user != null)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                        $"{user.Id}:{user.Email}:{string.Join(",", roles)}"
+                    ));
+                    
+                    if (!string.IsNullOrEmpty(returnUrl))
+                    {
+                        var separator = returnUrl.Contains("?") ? "&" : "?";
+                        returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(userEmail)}&Token={Uri.EscapeDataString(authToken)}";
+                    }
                 }
                 
                 return Redirect(returnUrl ?? "/");
@@ -209,10 +225,16 @@ namespace TaskManagementSys.Api.Controllers
                 
                 _logger.LogInformation("User created an account using {Name} provider", info.LoginProvider);
                 
+                // Generate auth token for new user
+                var roles = await _userManager.GetRolesAsync(user);
+                var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                    $"{user.Id}:{user.Email}:{string.Join(",", roles)}"
+                ));
+                
                 if (!string.IsNullOrEmpty(returnUrl))
                 {
                     var separator = returnUrl.Contains("?") ? "&" : "?";
-                    returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(email)}";
+                    returnUrl = $"{returnUrl}{separator}Email={Uri.EscapeDataString(email)}&Token={Uri.EscapeDataString(authToken)}";
                 }
                 
                 return Redirect(returnUrl ?? "/");

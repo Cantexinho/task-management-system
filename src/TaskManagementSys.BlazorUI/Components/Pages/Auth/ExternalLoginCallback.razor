@@ -1,26 +1,27 @@
 @page "/external-login-callback"
 @using Microsoft.AspNetCore.Components.Authorization
 @using TaskManagementSys.BlazorUI.Services
-@inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
+@inject AuthService AuthService
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Processing login...</PageTitle>
-
-<div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
-    <div class="text-center">
-        <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+<div class="container mt-5">
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger" role="alert">
+            @errorMessage
         </div>
-        <p class="mt-3">Processing your login...</p>
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="alert alert-danger mt-3" role="alert">
-                @errorMessage
+    }
+    else
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
-        }
-    </div>
+            <p class="mt-3">Processing authentication...</p>
+        </div>
+    }
 </div>
 
 @code {
@@ -37,54 +38,37 @@
     protected override async Task OnInitializedAsync()
     {
         try {
-            // Log the current URL for debugging
             await JSRuntime.InvokeVoidAsync("console.log", "Current URL: " + Navigation.Uri);
             
-            // If we have email and token from query params, use those directly
-            if (!string.IsNullOrEmpty(Email))
+            if (!string.IsNullOrEmpty(Email) && !string.IsNullOrEmpty(Token))
             {
-                await JSRuntime.InvokeVoidAsync("console.log", "Email found in URL: " + Email);
+                await JSRuntime.InvokeVoidAsync("console.log", "Email and Token found in URL");
+                
+                // Set the auth token first
+                AuthService.SetAuthToken(Token);
                 
                 var userSession = new UserSession
                 {
                     Email = Email,
-                    Roles = new List<string> { "User" }
+                    Roles = new List<string> { "User" }  // Default role
                 };
                 
-                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession);
+                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession, Token);
                 
-                // Redirect to home page
+                var userInfo = await AuthService.GetUserInfoAsync();
+                if (userInfo != null)
+                {
+                    userSession.Roles = userInfo.Roles;
+                    await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession, Token);
+                }
+                
                 Navigation.NavigateTo("/");
                 return;
             }
             
-            // Otherwise, try to get user info from the API
-            await JSRuntime.InvokeVoidAsync("console.log", "Trying to get user info from API...");
-            var userInfo = await AuthService.GetUserInfoAsync();
-            
-            if (userInfo != null && !string.IsNullOrEmpty(userInfo.Email))
-            {
-                await JSRuntime.InvokeVoidAsync("console.log", "User info retrieved: " + userInfo.Email);
-                
-                var userSession = new UserSession
-                {
-                    Email = userInfo.Email,
-                    Roles = userInfo.Roles ?? new List<string> { "User" }
-                };
-                
-                await ((CustomAuthStateProvider)AuthStateProvider).UpdateAuthenticationState(userSession);
-                
-                // Redirect to home page
-                Navigation.NavigateTo("/");
-            }
-            else
-            {
-                // Let's create a direct login back to our API
-                await JSRuntime.InvokeVoidAsync("console.log", "Authentication failed - trying a different approach...");
-                errorMessage = "Authentication process incomplete. Redirecting you back to login...";
-                await Task.Delay(3000); // Give user time to read the message
-                Navigation.NavigateTo("/login");
-            }
+            errorMessage = "Authentication failed. Please try logging in again.";
+            await Task.Delay(3000);
+            Navigation.NavigateTo("/login");
         }
         catch (Exception ex)
         {
