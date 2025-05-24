@@ -5,6 +5,5 @@ Idea is to create a simple app which helps you with you schedule, deadlines and 
 
 
 # TODO:
-- when task hovers above new status make status shine
 - task editing
 - 

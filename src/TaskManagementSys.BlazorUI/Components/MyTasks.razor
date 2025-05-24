@@ -1,0 +1,125 @@
+@using TaskManagementSys.BlazorUI.Services
+@inject TaskService TaskService
+
+<div class="card">
+    <div class="card-header">
+        <h4>My Tasks</h4>
+    </div>
+    <div class="card-body">
+        @if (_isLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (_tasks.Count == 0)
+        {
+            <p>You have no tasks assigned yet.</p>
+            <button @onclick="ShowTaskModal" class="btn btn-primary">Create New Task</button>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Due Date</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var task in _tasks)
+                        {
+                            <tr @onclick="() => ShowEditTaskModal(task)" style="cursor: pointer;">
+                                <td>@task.Title</td>
+                                <td>@(task.DueDate?.ToShortDateString() ?? "-")</td>
+                                <td><span class="badge @GetPriorityBadgeClass(task.Priority)">@task.Priority</span></td>
+                                <td><span class="badge @GetStatusBadgeClass(task.Status)">@task.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="d-flex justify-content-between">
+                <a href="/tasks" class="btn btn-primary">View All Tasks</a>
+                <button @onclick="ShowTaskModal" class="btn btn-success">Create New Task</button>
+            </div>
+        }
+    </div>
+</div>
+
+<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnClose="OnModalClosed" />
+
+@code {
+    private List<TaskDto> _tasks = new();
+    private bool _isLoading = true;
+    private TaskModal? _taskModal;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _tasks = await TaskService.GetUserTasksAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tasks: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ShowTaskModal()
+    {
+        _taskModal?.ShowModal();
+    }
+
+    private void ShowEditTaskModal(TaskDto task)
+    {
+        _taskModal?.ShowEditModal(task);
+    }
+
+    private async Task OnTaskCreated(TaskDto task)
+    {
+        // Refresh the task list
+        _tasks = await TaskService.GetUserTasksAsync();
+        StateHasChanged();
+    }
+
+    private void OnModalClosed(bool value)
+    {
+        // Modal closed callback
+    }
+
+    private string GetPriorityBadgeClass(string priority)
+    {
+        return priority switch
+        {
+            "Low" => "bg-secondary",
+            "Medium" => "bg-info",
+            "High" => "bg-warning",
+            "Urgent" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Todo" => "bg-secondary",
+            "InProgress" => "bg-primary",
+            "Review" => "bg-info",
+            "Completed" => "bg-success",
+            "Canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+} 

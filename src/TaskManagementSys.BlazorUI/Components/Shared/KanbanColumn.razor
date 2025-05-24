@@ -12,7 +12,10 @@
     <div class="kanban-column-body">
         @foreach (var task in Tasks.Where(t => t.Status == Status))
         {
-            <div class="kanban-item" draggable="true" @ondragstart="@(() => HandleDragStart(task))">
+            <div class="kanban-item" draggable="true" 
+                 @ondragstart="@(() => HandleDragStart(task))"
+                 @onclick="@(() => ShowEditTaskModal(task))"
+                 style="cursor: pointer;">
                 <div class="card">
                     <div class="card-body py-2 px-3">
                         <small class="d-block text-truncate">@task.Title</small>
@@ -27,6 +30,8 @@
         }
     </div>
 </div>
+
+<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskEdited" OnClose="OnModalClosed" />
 
 @code {
     [Parameter]
@@ -49,6 +54,7 @@
 
     private static TaskDto? draggedTask;
     private bool isDragOver;
+    private TaskModal? _taskModal;
 
     private void HandleDragStart(TaskDto task)
     {
@@ -95,6 +101,22 @@
         }
         
         StateHasChanged();
+    }
+
+    private void ShowEditTaskModal(TaskDto task)
+    {
+        _taskModal?.ShowEditModal(task);
+    }
+
+    private async Task OnTaskEdited(TaskDto task)
+    {
+        // Notify parent that a task was updated
+        await OnTaskStatusChanged.InvokeAsync((task, task.Status));
+    }
+
+    private void OnModalClosed(bool value)
+    {
+        // Modal closed callback
     }
 
     private string GetPriorityBadgeClass(string priority)

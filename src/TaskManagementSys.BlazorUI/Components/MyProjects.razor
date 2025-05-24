@@ -1,0 +1,94 @@
+@using TaskManagementSys.BlazorUI.Services
+@inject ProjectService ProjectService
+
+<div class="card">
+    <div class="card-header">
+        <h4>My Projects</h4>
+    </div>
+    <div class="card-body">
+        @if (_isLoading)
+        {
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        }
+        else if (_projects.Count == 0)
+        {
+            <p>You have no projects yet.</p>
+            <a href="/projects" class="btn btn-primary">Create New Project</a>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var project in _projects)
+                        {
+                            <tr>
+                                <td>@project.Name</td>
+                                <td><span class="badge @GetStatusBadgeClass(project.Status)">@project.Status</span></td>
+                                <td>
+                                    <div class="progress">
+                                        <div class="progress-bar" role="progressbar" style="width: @(project.CompletionPercentage)%;" 
+                                             aria-valuenow="@project.CompletionPercentage" aria-valuemin="0" aria-valuemax="100">
+                                            @project.CompletionPercentage%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="/projects/@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <a href="/projects" class="btn btn-primary">View All Projects</a>
+        }
+    </div>
+</div>
+
+@code {
+    private List<ProjectDto> _projects = new();
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            _projects = await ProjectService.GetUserProjectsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Planning" => "bg-secondary",
+            "Active" => "bg-primary",
+            "OnHold" => "bg-warning",
+            "Completed" => "bg-success",
+            "Canceled" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+} 

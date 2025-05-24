@@ -98,6 +98,27 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <InputSelect id="status" class="@GetSelectClass("status")" @bind-Value="_createTaskDto.Status">
+                            <option value="@TaskItemStatus.Todo">Todo</option>
+                            <option value="@TaskItemStatus.InProgress">In Progress</option>
+                            <option value="@TaskItemStatus.Review">Review</option>
+                            <option value="@TaskItemStatus.Completed">Completed</option>
+                            <option value="@TaskItemStatus.Canceled">Canceled</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => _createTaskDto.Status)" />
+                        @if (HasError("status"))
+                        {
+                            <div class="invalid-feedback">
+                                @foreach (var error in GetErrors("status"))
+                                {
+                                    <div>@error</div>
+                                }
+                            </div>
+                        }
+                    </div>
+
+                    <div class="mb-3">
                         <label for="project" class="form-label">Project (Optional)</label>
                         <InputSelect id="project" class="@GetSelectClass("projectId")" @bind-Value="_createTaskDto.ProjectId">
                             <option value="">-- None --</option>
@@ -151,6 +172,7 @@
     private Dictionary<string, List<string>> _validationErrors = new();
     private List<ProjectDto> _projects = new();
     private CreateTaskDto _createTaskDto = new();
+    private TaskDto? _taskBeingEdited;
     
     [Parameter]
     public EventCallback<bool> OnClose { get; set; }
@@ -206,6 +228,31 @@
         _isVisible = true;
         _isSubmitting = false;
         _isEditing = false;
+        _taskBeingEdited = null;
+        await LoadProjects();
+        StateHasChanged();
+    }
+
+    public async Task ShowEditModal(TaskDto task)
+    {
+        _taskBeingEdited = task;
+        _createTaskDto = new CreateTaskDto 
+        { 
+            Title = task.Title,
+            Description = task.Description,
+            DueDate = task.DueDate,
+            Priority = Enum.Parse<TaskPriority>(task.Priority),
+            Status = Enum.Parse<TaskItemStatus>(task.Status),
+            ProjectId = task.ProjectId,
+            CategoryIds = new List<int>(),
+            AssigneeIds = new List<string>()
+        };
+        _errorMessage = null;
+        _successMessage = null;
+        _validationErrors.Clear();
+        _isVisible = true;
+        _isSubmitting = false;
+        _isEditing = true;
         await LoadProjects();
         StateHasChanged();
     }
@@ -230,76 +277,79 @@
             _successMessage = null;
             _validationErrors.Clear();
             StateHasChanged();
-            
-            Console.WriteLine($"Submitting task: {_createTaskDto.Title}, Priority: {_createTaskDto.Priority}, Status: {_createTaskDto.Status}");
-            
-            // Call the service and get the response tuple
-            var response = await TaskService.CreateTaskAsync(_createTaskDto);
-            
-            // Extract individual parts from the tuple
-            var (taskResult, errors) = response;
-            
-            Console.WriteLine($"Task creation response - Task: {taskResult?.Title ?? "null"}, Errors: {errors.Count}");
-            
-            // Update validation errors
-            _validationErrors = errors;
-            
-            if (errors.Count > 0)
+
+            if (_isEditing && _taskBeingEdited != null)
             {
-                Console.WriteLine("Validation errors:");
-                foreach (var err in errors)
+                // Update existing task
+                _taskBeingEdited.Title = _createTaskDto.Title;
+                _taskBeingEdited.Description = _createTaskDto.Description;
+                _taskBeingEdited.DueDate = _createTaskDto.DueDate;
+                _taskBeingEdited.Priority = _createTaskDto.Priority.ToString();
+                _taskBeingEdited.Status = _createTaskDto.Status.ToString();
+                _taskBeingEdited.ProjectId = _createTaskDto.ProjectId;
+
+                var success = await TaskService.UpdateTaskAsync(_taskBeingEdited);
+                
+                if (success)
                 {
-                    Console.WriteLine($"  {err.Key}: {string.Join(", ", err.Value)}");
+                    _successMessage = $"Task '{_taskBeingEdited.Title}' updated successfully!";
+                    await OnTaskCreated.InvokeAsync(_taskBeingEdited);
+                    
+                    // Close after a short delay to allow the user to see the success message
+                    await Task.Delay(1500);
+                    await CloseModal();
                 }
-                
-                // Display general error message if there's an entry with empty key
-                if (errors.ContainsKey("") && errors[""].Count > 0)
+                else
                 {
-                    _errorMessage = string.Join(", ", errors[""]);
+                    _errorMessage = "Failed to update task. Please try again.";
                 }
-                // Otherwise create a general error about validation
-                else if (errors.Count > 0)
-                {
-                    _errorMessage = "Please correct the validation errors.";
-                }
-                
-                StateHasChanged();
-                return;
-            }
-            
-            if (taskResult != null)
-            {
-                _successMessage = $"Task '{taskResult.Title}' created successfully!";
-                await OnTaskCreated.InvokeAsync(taskResult);
-                
-                // Reset form after successful creation
-                _createTaskDto = new CreateTaskDto();
-                StateHasChanged();
-                
-                // Close after a short delay to allow the user to see the success message
-                await Task.Delay(1500);
-                await CloseModal();
             }
             else
             {
-                _errorMessage = "Failed to create task. Please try again.";
+                // Create new task
+                var response = await TaskService.CreateTaskAsync(_createTaskDto);
+                var (taskResult, errors) = response;
+                
+                _validationErrors = errors;
+                
+                if (errors.Count > 0)
+                {
+                    if (errors.ContainsKey("") && errors[""].Count > 0)
+                    {
+                        _errorMessage = string.Join(", ", errors[""]);
+                    }
+                    else
+                    {
+                        _errorMessage = "Please correct the validation errors.";
+                    }
+                    return;
+                }
+                
+                if (taskResult != null)
+                {
+                    _successMessage = $"Task '{taskResult.Title}' created successfully!";
+                    await OnTaskCreated.InvokeAsync(taskResult);
+                    
+                    // Close after a short delay to allow the user to see the success message
+                    await Task.Delay(1500);
+                    await CloseModal();
+                }
+                else
+                {
+                    _errorMessage = "Failed to create task. Please try again.";
+                }
             }
-            
-            // Simply show validation errors without global error message
-            StateHasChanged();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error creating task: {ex.Message}");
+            Console.WriteLine($"Error saving task: {ex.Message}");
             Console.WriteLine($"Stack trace: {ex.StackTrace}");
-            // Add error to a specific field or as a general validation error
             if (!_validationErrors.ContainsKey(""))
             {
                 _validationErrors[""] = new List<string>();
             }
             _validationErrors[""].Add($"Error: {ex.Message}");
             _errorMessage = $"Error: {ex.Message}";
-            StateHasChanged();
         }
         finally
         {
