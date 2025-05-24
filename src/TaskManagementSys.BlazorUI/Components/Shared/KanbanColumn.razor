@@ -12,7 +12,7 @@
     <div class="kanban-column-body">
         @foreach (var task in Tasks.Where(t => t.Status == Status))
         {
-            <div class="kanban-item" draggable="true" 
+            <div @key="task.Id" class="kanban-item" draggable="true" 
                  @ondragstart="@(() => HandleDragStart(task))"
                  @onclick="@(() => ShowEditTaskModal(task))"
                  style="cursor: pointer;">

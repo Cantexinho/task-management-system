@@ -34,7 +34,7 @@
                     <tbody>
                         @foreach (var task in Tasks)
                         {
-                            <tr @onclick="() => ShowEditTaskModal(task)" style="cursor: pointer;">
+                            <tr @key="task.Id" @onclick="() => ShowEditTaskModal(task)" style="cursor: pointer;">
                                 <td>@task.Title</td>
                                 <td>@(task.DueDate?.ToShortDateString() ?? "-")</td>
                                 <td><span class="badge @GetPriorityBadgeClass(task.Priority)">@task.Priority</span></td>
