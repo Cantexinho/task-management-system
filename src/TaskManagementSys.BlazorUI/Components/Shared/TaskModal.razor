@@ -4,12 +4,12 @@
 @inject TaskService TaskService
 @inject ProjectService ProjectService
 
-<div class="modal fade @(_isVisible ? "show" : "")" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" 
+<div class="modal fade @(_isVisible ? "show" : "")" id="@ModalId" tabindex="-1" aria-labelledby="@LabelId" 
      style="display: @(_isVisible ? "block" : "none");" aria-modal="@_isVisible" role="dialog">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="taskModalLabel">@(_isEditing ? "Edit Task" : "Create New Task")</h5>
+                <h5 class="modal-title" id="@LabelId">@(_isEditing ? "Edit Task" : "Create New Task")</h5>
                 <button type="button" class="btn-close" aria-label="Close" @onclick="CloseModal"></button>
             </div>
             <div class="modal-body">
@@ -33,8 +33,8 @@
                     <DataAnnotationsValidator />
 
                     <div class="mb-3">
-                        <label for="title" class="form-label">Title</label>
-                        <InputText id="title" class="@GetInputClass("title")" @bind-Value="_createTaskDto.Title" />
+                        <label for="@TitleId" class="form-label">Title</label>
+                        <InputText id="@TitleId" class="@GetInputClass("title")" @bind-Value="_createTaskDto.Title" />
                         <ValidationMessage For="@(() => _createTaskDto.Title)" />
                         @if (HasError("title"))
                         {
@@ -48,8 +48,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <InputTextArea id="description" class="@GetInputClass("description")" @bind-Value="_createTaskDto.Description" />
+                        <label for="@DescriptionId" class="form-label">Description</label>
+                        <InputTextArea id="@DescriptionId" class="@GetInputClass("description")" @bind-Value="_createTaskDto.Description" />
                         <ValidationMessage For="@(() => _createTaskDto.Description)" />
                         @if (HasError("description"))
                         {
@@ -63,8 +63,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="dueDate" class="form-label">Due Date</label>
-                        <InputDate id="dueDate" class="@GetInputClass("dueDate")" @bind-Value="_createTaskDto.DueDate" />
+                        <label for="@DueDateId" class="form-label">Due Date</label>
+                        <InputDate id="@DueDateId" class="@GetInputClass("dueDate")" @bind-Value="_createTaskDto.DueDate" />
                         <ValidationMessage For="@(() => _createTaskDto.DueDate)" />
                         @if (HasError("dueDate"))
                         {
@@ -78,8 +78,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="priority" class="form-label">Priority</label>
-                        <InputSelect id="priority" class="@GetSelectClass("priority")" @bind-Value="_createTaskDto.Priority">
+                        <label for="@PriorityId" class="form-label">Priority</label>
+                        <InputSelect id="@PriorityId" class="@GetSelectClass("priority")" @bind-Value="_createTaskDto.Priority">
                             <option value="@TaskPriority.Low">Low</option>
                             <option value="@TaskPriority.Medium">Medium</option>
                             <option value="@TaskPriority.High">High</option>
@@ -98,8 +98,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <InputSelect id="status" class="@GetSelectClass("status")" @bind-Value="_createTaskDto.Status">
+                        <label for="@StatusId" class="form-label">Status</label>
+                        <InputSelect id="@StatusId" class="@GetSelectClass("status")" @bind-Value="_createTaskDto.Status">
                             <option value="@TaskItemStatus.Todo">Todo</option>
                             <option value="@TaskItemStatus.InProgress">In Progress</option>
                             <option value="@TaskItemStatus.Review">Review</option>
@@ -119,8 +119,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="project" class="form-label">Project (Optional)</label>
-                        <InputSelect id="project" class="@GetSelectClass("projectId")" @bind-Value="_createTaskDto.ProjectId">
+                        <label for="@ProjectId" class="form-label">Project (Optional)</label>
+                        <InputSelect id="@ProjectId" class="@GetSelectClass("projectId")" @bind-Value="_createTaskDto.ProjectId">
                             <option value="">-- None --</option>
                             @foreach (var project in _projects)
                             {
@@ -178,6 +178,8 @@
 }
 
 @code {
+    private static int _modalCounter = 0;
+    private readonly string _modalId;
     private bool _isVisible = false;
     private bool _isSubmitting = false;
     private bool _isEditing = false;
@@ -187,6 +189,15 @@
     private List<ProjectDto> _projects = new();
     private CreateTaskDto _createTaskDto = new();
     private TaskDto? _taskBeingEdited;
+
+    private string ModalId => $"taskModal_{_modalId}";
+    private string LabelId => $"taskModalLabel_{_modalId}";
+    private string TitleId => $"title_{_modalId}";
+    private string DescriptionId => $"description_{_modalId}";
+    private string DueDateId => $"dueDate_{_modalId}";
+    private string PriorityId => $"priority_{_modalId}";
+    private string StatusId => $"status_{_modalId}";
+    private string ProjectId => $"project_{_modalId}";
     
     [Parameter]
     public EventCallback<bool> OnClose { get; set; }
@@ -196,6 +207,11 @@
     
     [Parameter]
     public EventCallback<TaskDto> OnTaskDeleted { get; set; }
+    
+    public TaskModal()
+    {
+        _modalId = $"modal_{Interlocked.Increment(ref _modalCounter)}";
+    }
     
     private bool HasError(string fieldName)
     {
