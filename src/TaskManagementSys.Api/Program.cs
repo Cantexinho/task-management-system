@@ -62,20 +62,20 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddIdentity<IdentityUser, IdentityRole>(options => 
 {
     // Password settings
-    options.Password.RequireDigit = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireNonAlphanumeric = true;
-    options.Password.RequiredLength = 8;
+    options.Password.RequireDigit = EnvVars.PasswordRequireDigit;
+    options.Password.RequireLowercase = EnvVars.PasswordRequireLowercase;
+    options.Password.RequireUppercase = EnvVars.PasswordRequireUppercase;
+    options.Password.RequireNonAlphanumeric = EnvVars.PasswordRequireNonAlphanumeric;
+    options.Password.RequiredLength = EnvVars.PasswordMinLength;
     
     // Lockout settings
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(EnvVars.LockoutDurationMinutes);
+    options.Lockout.MaxFailedAccessAttempts = EnvVars.MaxFailedAttempts;
     
     // User settings
-    options.User.RequireUniqueEmail = true;
-    options.SignIn.RequireConfirmedAccount = false;
-    options.SignIn.RequireConfirmedEmail = false;
+    options.User.RequireUniqueEmail = EnvVars.RequireUniqueEmail;
+    options.SignIn.RequireConfirmedAccount = EnvVars.RequireConfirmedAccount;
+    options.SignIn.RequireConfirmedEmail = EnvVars.RequireConfirmedEmail;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
@@ -94,7 +94,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.Cookie.Name = "TaskManagementAuth";
+    options.Cookie.Name = EnvVars.CookieName;
     options.ExpireTimeSpan = TimeSpan.FromDays(EnvVars.JwtExpiryDays);
     options.SlidingExpiration = true;
     options.Events.OnRedirectToLogin = context =>
@@ -115,12 +115,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorApp", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:5010",
-                "https://localhost:5010",
-                "http://localhost:5011",
-                "https://localhost:5011"
-            )
+        policy.WithOrigins(EnvVars.AllowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();

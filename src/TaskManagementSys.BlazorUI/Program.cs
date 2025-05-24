@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using TaskManagementSys.BlazorUI.Components;
 using TaskManagementSys.BlazorUI.Services;
+using TaskManagementSys.Infrastructure.Configuration;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");

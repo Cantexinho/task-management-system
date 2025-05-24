@@ -5,16 +5,15 @@ services:
       context: ./src
       dockerfile: TaskManagementSys.Api/Dockerfile
     ports:
-      - "5000:80"
+      - "${API_PORT}:80"
     env_file:
       - ./.env
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Data Source=/app/database/taskmanagement.db;Cache=Shared
+      - CONNECTION_STRING=Data Source=/app/database/taskmanagement.db
     volumes:
       - ./database:/app/database
-      - ./src:/src
     networks:
       - taskmanagement-network
     restart: unless-stopped
@@ -25,9 +24,11 @@ services:
       context: ./src
       dockerfile: TaskManagementSys.BlazorUI/Dockerfile
     ports:
-      - "5010:80"
-    volumes:
-      - ./src:/src
+      - "${BLAZOR_PORT}:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ApiBaseUrl=http://api:80
     depends_on:
       - api
     networks:
