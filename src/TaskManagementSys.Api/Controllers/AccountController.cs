@@ -65,13 +65,27 @@ namespace TaskManagementSys.Api.Controllers
             {
                 _logger.LogInformation("User created a new account with password");
                 
-                // user to default role
+                // Add user to default role
                 await _userManager.AddToRoleAsync(user, "User");
                 
-                // auto sign in the user
+                // Auto sign in the user
                 await _signInManager.SignInAsync(user, isPersistent: false);
+
+                // Get roles and generate auth token
+                var roles = await _userManager.GetRolesAsync(user);
+                var authToken = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(
+                    $"{user.Id}:{user.Email}:{string.Join(",", roles)}"
+                ));
                 
-                return Ok(new { message = "User registered successfully" });
+                return Ok(new { 
+                    message = "User registered successfully",
+                    authToken = authToken,
+                    user = new {
+                        email = user.Email,
+                        userName = user.UserName,
+                        roles = roles
+                    }
+                });
             }
             
             _logger.LogWarning("User registration failed: {Errors}", 
