@@ -31,7 +31,7 @@
     </div>
 </div>
 
-<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskEdited" OnClose="OnModalClosed" />
+<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskEdited" OnTaskDeleted="OnTaskDeleted" OnClose="OnModalClosed" />
 
 @code {
     [Parameter]
@@ -111,6 +111,12 @@
     private async Task OnTaskEdited(TaskDto task)
     {
         // Notify parent that a task was updated
+        await OnTaskStatusChanged.InvokeAsync((task, task.Status));
+    }
+
+    private async Task OnTaskDeleted(TaskDto task)
+    {
+        // Notify parent that a task was deleted
         await OnTaskStatusChanged.InvokeAsync((task, task.Status));
     }
 

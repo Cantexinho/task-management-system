@@ -52,7 +52,7 @@
     </div>
 </div>
 
-<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnClose="OnModalClosed" />
+<TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnTaskDeleted="OnTaskDeleted" OnClose="OnModalClosed" />
 
 @code {
     [Parameter]
@@ -77,6 +77,11 @@
     }
 
     private async Task OnTaskCreated(TaskDto task)
+    {
+        await OnTaskUpdated.InvokeAsync(task);
+    }
+
+    private async Task OnTaskDeleted(TaskDto task)
     {
         await OnTaskUpdated.InvokeAsync(task);
     }

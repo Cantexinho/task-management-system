@@ -149,6 +149,32 @@ namespace TaskManagementSys.BlazorUI.Services
                 return (null, new Dictionary<string, List<string>> { { "", new List<string> { ex.Message } } });
             }
         }
+
+        public async Task<(bool Success, string? ErrorMessage)> DeleteTaskAsync(int taskId)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"/api/Tasks/{taskId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return (false, "You don't have permission to delete tasks. Only administrators and managers can delete tasks.");
+                }
+                
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return (false, errorContent);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting task: {ex.Message}");
+                return (false, ex.Message);
+            }
+        }
     }
 
     public class TaskDto

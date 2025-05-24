@@ -140,6 +140,20 @@
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                        @if (_isEditing && _taskBeingEdited != null)
+                        {
+                            <button type="button" class="btn btn-danger me-auto" @onclick="HandleDelete" disabled="@_isSubmitting">
+                                @if (_isSubmitting)
+                                {
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span> Deleting...</span>
+                                }
+                                else
+                                {
+                                    <span>Delete Task</span>
+                                }
+                            </button>
+                        }
                         <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
                             @if (_isSubmitting)
                             {
@@ -179,6 +193,9 @@
     
     [Parameter]
     public EventCallback<TaskDto> OnTaskCreated { get; set; }
+    
+    [Parameter]
+    public EventCallback<TaskDto> OnTaskDeleted { get; set; }
     
     private bool HasError(string fieldName)
     {
@@ -349,6 +366,45 @@
                 _validationErrors[""] = new List<string>();
             }
             _validationErrors[""].Add($"Error: {ex.Message}");
+            _errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            _isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleDelete()
+    {
+        if (_taskBeingEdited == null) return;
+        
+        try
+        {
+            _isSubmitting = true;
+            _errorMessage = null;
+            _successMessage = null;
+            StateHasChanged();
+
+            var (success, errorMessage) = await TaskService.DeleteTaskAsync(_taskBeingEdited.Id);
+            
+            if (success)
+            {
+                _successMessage = $"Task '{_taskBeingEdited.Title}' deleted successfully!";
+                await OnTaskDeleted.InvokeAsync(_taskBeingEdited);
+                
+                // Close after a short delay to allow the user to see the success message
+                await Task.Delay(1500);
+                await CloseModal();
+            }
+            else
+            {
+                _errorMessage = errorMessage ?? "Failed to delete task. Please try again.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error deleting task: {ex.Message}");
             _errorMessage = $"Error: {ex.Message}";
         }
         finally
