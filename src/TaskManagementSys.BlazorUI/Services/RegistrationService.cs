@@ -49,7 +49,7 @@ namespace TaskManagementSys.BlazorUI.Services
             return string.Empty;
         }
 
-        public async Task<bool> RegisterAsync(string? email, string? password, string? confirmPassword)
+        public async Task<(UserInfo? userInfo, string? authToken)> RegisterAsync(string? email, string? password, string? confirmPassword)
         {
             return await _authService.RegisterAsync(email ?? string.Empty, password ?? string.Empty, confirmPassword ?? string.Empty);
         }

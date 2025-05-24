@@ -57,7 +57,7 @@ namespace TaskManagementSys.BlazorUI.Services
             return (null, null);
         }
 
-        public async Task<bool> RegisterAsync(string email, string password, string confirmPassword)
+        public async Task<(UserInfo? userInfo, string? authToken)> RegisterAsync(string email, string password, string confirmPassword)
         {
             var registerData = new
             {
@@ -68,13 +68,29 @@ namespace TaskManagementSys.BlazorUI.Services
 
             var response = await _httpClient.PostAsJsonAsync("/api/Account/register", registerData);
             
-            if (!response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
+            {
+                var registerResponse = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                
+                if (registerResponse?.User != null)
+                {
+                    var userInfo = new UserInfo
+                    {
+                        Email = registerResponse.User.Email,
+                        UserName = registerResponse.User.UserName,
+                        Roles = registerResponse.User.Roles ?? new List<string>()
+                    };
+                    
+                    return (userInfo, registerResponse.AuthToken);
+                }
+            }
+            else
             {
                 var errorContent = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"Registration failed. Status: {response.StatusCode}, Error: {errorContent}");
             }
             
-            return response.IsSuccessStatusCode;
+            return (null, null);
         }
 
         public async Task LogoutAsync()

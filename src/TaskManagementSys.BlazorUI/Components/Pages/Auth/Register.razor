@@ -196,18 +196,19 @@
             {
                 var result = await RegistrationService.RegisterAsync(model.Email, model.Password, model.ConfirmPassword);
                 
-                if (result)
+                if (result.userInfo != null && !string.IsNullOrEmpty(result.authToken))
                 {
                     var userSession = new UserSession
                     {
-                        Email = model.Email,
-                        Roles = new List<string> { "User" }
+                        Email = result.userInfo.Email,
+                        UserId = result.userInfo.UserName,
+                        Roles = result.userInfo.Roles ?? new List<string>()
                     };
                     
                     var authProvider = (CustomAuthStateProvider)AuthStateProvider;
                     if (authProvider != null)
                     {
-                        await authProvider.UpdateAuthenticationState(userSession);
+                        await authProvider.UpdateAuthenticationState(userSession, result.authToken);
                         Navigation.NavigateTo("/");
                     }
                     else
