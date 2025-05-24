@@ -7,10 +7,13 @@
 @using Microsoft.AspNetCore.Components
 @using Microsoft.AspNetCore.Components.Forms
 @using System.ComponentModel.DataAnnotations
+@using TaskManagementSys.Infrastructure.Configuration
+@using Microsoft.Extensions.Configuration
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JSRuntime
+@inject IConfiguration Configuration
 
 <PageTitle>Login</PageTitle>
 
@@ -235,9 +238,7 @@
     private void LoginWithGoogle()
     {
         var currentBaseUrl = Navigation.BaseUri.TrimEnd('/');
-        
-        var apiUrl = "http://localhost:5000";
-        
+        var apiUrl = Configuration["ApiBaseUrl"] ?? "http://localhost:5000";
         var returnUrl = $"{currentBaseUrl}/external-login-callback";
         var encodedReturnUrl = Uri.EscapeDataString(returnUrl);
         

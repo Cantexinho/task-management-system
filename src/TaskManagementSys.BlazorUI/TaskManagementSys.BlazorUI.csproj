@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TaskManagementSys.Core\TaskManagementSys.Core.csproj" />
+    <ProjectReference Include="..\TaskManagementSys.Infrastructure\TaskManagementSys.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>
