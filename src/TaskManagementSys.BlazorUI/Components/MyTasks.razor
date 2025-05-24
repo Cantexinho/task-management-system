@@ -6,7 +6,7 @@
         <h4>My Tasks</h4>
     </div>
     <div class="card-body">
-        @if (_isLoading)
+        @if (IsLoading)
         {
             <div class="text-center">
                 <div class="spinner-border" role="status">
@@ -14,7 +14,7 @@
                 </div>
             </div>
         }
-        else if (_tasks.Count == 0)
+        else if (Tasks.Count == 0)
         {
             <p>You have no tasks assigned yet.</p>
             <button @onclick="ShowTaskModal" class="btn btn-primary">Create New Task</button>
@@ -32,7 +32,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var task in _tasks)
+                        @foreach (var task in Tasks)
                         {
                             <tr @onclick="() => ShowEditTaskModal(task)" style="cursor: pointer;">
                                 <td>@task.Title</td>
@@ -55,26 +55,16 @@
 <TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnClose="OnModalClosed" />
 
 @code {
-    private List<TaskDto> _tasks = new();
-    private bool _isLoading = true;
-    private TaskModal? _taskModal;
+    [Parameter]
+    public List<TaskDto> Tasks { get; set; } = new();
 
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            _isLoading = true;
-            _tasks = await TaskService.GetUserTasksAsync();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading tasks: {ex.Message}");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
+    [Parameter]
+    public bool IsLoading { get; set; }
+
+    [Parameter]
+    public EventCallback<TaskDto> OnTaskUpdated { get; set; }
+
+    private TaskModal? _taskModal;
 
     private void ShowTaskModal()
     {
@@ -88,9 +78,7 @@
 
     private async Task OnTaskCreated(TaskDto task)
     {
-        // Refresh the task list
-        _tasks = await TaskService.GetUserTasksAsync();
-        StateHasChanged();
+        await OnTaskUpdated.InvokeAsync(task);
     }
 
     private void OnModalClosed(bool value)
