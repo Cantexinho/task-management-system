@@ -25,21 +25,21 @@
                         else
                         {
                             <div class="kanban-board">
-                                <div class="row">
+                                <div class="row align-items-stretch">
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Todo" Title="Todo" Color="bg-secondary" />
+                                        <KanbanColumn @key=@("Todo") Tasks="_tasks" Status="Todo" Title="Todo" Color="bg-secondary" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="InProgress" Title="In Progress" Color="bg-primary" />
+                                        <KanbanColumn @key=@("InProgress") Tasks="_tasks" Status="InProgress" Title="In Progress" Color="bg-primary" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Review" Title="Review" Color="bg-info" />
+                                        <KanbanColumn @key=@("Review") Tasks="_tasks" Status="Review" Title="Review" Color="bg-info" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Completed" Title="Completed" Color="bg-success" />
+                                        <KanbanColumn @key=@("Completed") Tasks="_tasks" Status="Completed" Title="Completed" Color="bg-success" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                     <div class="col">
-                                        <KanbanColumn Tasks="_tasks" Status="Canceled" Title="Canceled" Color="bg-danger" />
+                                        <KanbanColumn @key=@("Canceled") Tasks="_tasks" Status="Canceled" Title="Canceled" Color="bg-danger" OnTaskStatusChanged="HandleTaskStatusChanged" />
                                     </div>
                                 </div>
                             </div>
@@ -51,194 +51,97 @@
 
         <div class="row">
             <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>My Tasks</h4>
-                    </div>
-                    <div class="card-body">
-                        @if (_isLoading)
-                        {
-                            <div class="text-center">
-                                <div class="spinner-border" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        }
-                        else if (_tasks.Count == 0)
-                        {
-                            <p>You have no tasks assigned yet.</p>
-                            <button @onclick="ShowTaskModal" class="btn btn-primary">Create New Task</button>
-                        }
-                        else
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Title</th>
-                                            <th>Due Date</th>
-                                            <th>Priority</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var task in _tasks)
-                                        {
-                                            <tr>
-                                                <td>@task.Title</td>
-                                                <td>@(task.DueDate?.ToShortDateString() ?? "-")</td>
-                                                <td><span class="badge @GetPriorityBadgeClass(task.Priority)">@task.Priority</span></td>
-                                                <td><span class="badge @GetStatusBadgeClass(task.Status)">@task.Status</span></td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <a href="/tasks" class="btn btn-primary">View All Tasks</a>
-                                <button @onclick="ShowTaskModal" class="btn btn-success">Create New Task</button>
-                            </div>
-                        }
-                    </div>
-                </div>
+                <MyTasks @key=@("mytasks") Tasks="_tasks" IsLoading="_isLoading" OnTaskUpdated="HandleTaskUpdated" />
             </div>
             
             <div class="col-md-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h4>My Projects</h4>
-                    </div>
-                    <div class="card-body">
-                        @if (_isLoading)
-                        {
-                            <div class="text-center">
-                                <div class="spinner-border" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        }
-                        else if (_projects.Count == 0)
-                        {
-                            <p>You have no projects yet.</p>
-                            <a href="/projects" class="btn btn-primary">Create New Project</a>
-                        }
-                        else
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Status</th>
-                                            <th>Progress</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var project in _projects)
-                                        {
-                                            <tr>
-                                                <td>@project.Name</td>
-                                                <td><span class="badge @GetStatusBadgeClass(project.Status)">@project.Status</span></td>
-                                                <td>
-                                                    <div class="progress">
-                                                        <div class="progress-bar" role="progressbar" style="width: @(project.CompletionPercentage)%;" 
-                                                             aria-valuenow="@project.CompletionPercentage" aria-valuemin="0" aria-valuemax="100">
-                                                            @project.CompletionPercentage%
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <a href="/projects/@project.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                            <a href="/projects" class="btn btn-primary">View All Projects</a>
-                        }
-                    </div>
-                </div>
+                <MyProjects />
             </div>
         </div>
-        
-        <TaskModal @ref="_taskModal" OnTaskCreated="OnTaskCreated" OnClose="OnModalClosed" />
     </Authorized>
 </AuthorizeView>
 
 @code {
     private List<TaskDto> _tasks = new();
-    private List<ProjectDto> _projects = new();
     private bool _isLoading = true;
-    private TaskModal? _taskModal;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            _isLoading = true;
-            
-            var tasksTask = TaskService.GetUserTasksAsync();
-            var projectsTask = ProjectService.GetUserProjectsAsync();
-
-            await Task.WhenAll(tasksTask, projectsTask);
-            
-            _tasks = await tasksTask;
-            _projects = await projectsTask;
+            await RefreshTasks();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+    }
+
+    private async Task RefreshTasks()
+    {
+        try
+        {
+            var newTasks = await TaskService.GetUserTasksAsync();
+            
+            // Update tasks without triggering unnecessary refreshes
+            _tasks = newTasks;
         }
         finally
         {
             _isLoading = false;
         }
     }
-    
-    private void ShowTaskModal()
+
+    private async Task HandleTaskStatusChanged((TaskDto Task, string NewStatus) update)
     {
-        _taskModal?.ShowModal();
-    }
-    
-    private async Task OnTaskCreated(TaskDto task)
-    {
-        // Refresh the task list
-        _tasks = await TaskService.GetUserTasksAsync();
-        StateHasChanged();
-    }
-    
-    private void OnModalClosed(bool value)
-    {
-        // Modal closed callback
+        try
+        {
+            var (task, newStatus) = update;
+            
+            // Update the task in the existing list first
+            var existingTask = _tasks.FirstOrDefault(t => t.Id == task.Id);
+            if (existingTask != null)
+            {
+                existingTask.Status = newStatus;
+            }
+            
+            // Then save to the server
+            await TaskService.UpdateTaskAsync(task);
+            
+            // Finally, refresh the full list in the background
+            await RefreshTasks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating task status: {ex.Message}");
+            // Refresh the full list to ensure consistency
+            await RefreshTasks();
+        }
     }
 
-    private string GetPriorityBadgeClass(string priority)
+    private async Task HandleTaskUpdated(TaskDto task)
     {
-        return priority switch
+        try
         {
-            "Low" => "bg-secondary",
-            "Medium" => "bg-info",
-            "High" => "bg-warning",
-            "Urgent" => "bg-danger",
-            _ => "bg-secondary"
-        };
-    }
-
-    private string GetStatusBadgeClass(string status)
-    {
-        return status switch
+            // Update the task in the existing list first
+            var existingTask = _tasks.FirstOrDefault(t => t.Id == task.Id);
+            if (existingTask != null)
+            {
+                existingTask.Title = task.Title;
+                existingTask.Description = task.Description;
+                existingTask.DueDate = task.DueDate;
+                existingTask.Priority = task.Priority;
+                existingTask.Status = task.Status;
+                existingTask.ProjectId = task.ProjectId;
+            }
+            
+            // Then refresh the full list in the background
+            await RefreshTasks();
+        }
+        catch (Exception ex)
         {
-            "Todo" => "bg-secondary",
-            "InProgress" => "bg-primary",
-            "Review" => "bg-info",
-            "Completed" => "bg-success",
-            "Canceled" => "bg-danger",
-            "Planning" => "bg-secondary",
-            "Active" => "bg-primary",
-            "OnHold" => "bg-warning",
-            _ => "bg-secondary"
-        };
+            Console.WriteLine($"Error handling task update: {ex.Message}");
+            await RefreshTasks();
+        }
     }
 }

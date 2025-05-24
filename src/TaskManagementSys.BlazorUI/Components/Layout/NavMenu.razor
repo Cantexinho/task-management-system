@@ -23,6 +23,14 @@
                         <span class="bi bi-list-task" aria-hidden="true"></span> Tasks
                     </NavLink>
                 </li>
+                @if (isAdmin)
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link" href="user-management">
+                            <span class="bi bi-people-fill" aria-hidden="true"></span> User Management
+                        </NavLink>
+                    </li>
+                }
             </ul>
             <div class="d-flex">
                 <span class="text-light small me-3 my-auto">@username</span>
@@ -36,11 +44,13 @@
 
 @code {
     private string? username;
+    private bool isAdmin;
 
     protected override async Task OnInitializedAsync()
     {
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         username = authState.User.Identity?.Name;
+        isAdmin = authState.User.IsInRole("Admin");
     }
 
     private async Task HandleLogout()

@@ -35,6 +35,31 @@ namespace TaskManagementSys.BlazorUI.Services
                 return new List<TaskDto>();
             }
         }
+
+        public async Task<bool> UpdateTaskAsync(TaskDto task)
+        {
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true,
+                    Converters = { new JsonStringEnumConverter() }
+                };
+                
+                var json = JsonSerializer.Serialize(task, options);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+                
+                var response = await _httpClient.PutAsync($"/api/Tasks/{task.Id}", content);
+                
+                return response.IsSuccessStatusCode;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating task: {ex.Message}");
+                return false;
+            }
+        }
         
         public async Task<(TaskDto? Task, Dictionary<string, List<string>> ValidationErrors)> CreateTaskAsync(CreateTaskDto task)
         {
@@ -122,6 +147,32 @@ namespace TaskManagementSys.BlazorUI.Services
             {
                 Console.WriteLine($"Exception creating task: {ex.Message}");
                 return (null, new Dictionary<string, List<string>> { { "", new List<string> { ex.Message } } });
+            }
+        }
+
+        public async Task<(bool Success, string? ErrorMessage)> DeleteTaskAsync(int taskId)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync($"/api/Tasks/{taskId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return (true, null);
+                }
+                
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    return (false, "You don't have permission to delete tasks. Only administrators and managers can delete tasks.");
+                }
+                
+                var errorContent = await response.Content.ReadAsStringAsync();
+                return (false, errorContent);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting task: {ex.Message}");
+                return (false, ex.Message);
             }
         }
     }

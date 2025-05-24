@@ -1,0 +1,180 @@
+@page "/user-management"
+@using Microsoft.AspNetCore.Authorization
+@using TaskManagementSys.BlazorUI.Services
+@attribute [Authorize(Roles = "Admin")]
+@inject UserService UserService
+@inject ILogger<UserManagement> Logger
+
+<h3>User Management</h3>
+
+@if (_loading)
+{
+    <div class="d-flex justify-content-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (_error != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @_error
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Email Confirmed</th>
+                    <th>Roles</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in _users)
+                {
+                    <tr>
+                        <td>@user.UserName</td>
+                        <td>@user.Email</td>
+                        <td>
+                            @if (user.EmailConfirmed)
+                            {
+                                <span class="text-success">✓</span>
+                            }
+                            else
+                            {
+                                <span class="text-danger">✗</span>
+                            }
+                        </td>
+                        <td>
+                            @if (_editingUserId == user.Id)
+                            {
+                                <div class="d-flex gap-2">
+                                    @foreach (var role in _availableRoles)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   checked="@_selectedRoles.Contains(role)"
+                                                   @onchange="@(e => OnRoleToggle(role, (bool)e.Value!))" />
+                                            <label class="form-check-label">@role</label>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <span>@string.Join(", ", user.Roles)</span>
+                            }
+                        </td>
+                        <td>
+                            @if (_editingUserId == user.Id)
+                            {
+                                <button class="btn btn-success btn-sm me-2" @onclick="SaveRoles">
+                                    <span class="bi bi-check"></span> Save
+                                </button>
+                                <button class="btn btn-secondary btn-sm" @onclick="CancelEdit">
+                                    <span class="bi bi-x"></span> Cancel
+                                </button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-primary btn-sm" @onclick="@(() => StartEdit(user))">
+                                    <span class="bi bi-pencil"></span> Edit Roles
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<UserDto> _users = new();
+    private bool _loading = true;
+    private string? _error;
+    private string? _editingUserId;
+    private List<string> _selectedRoles = new();
+    private readonly List<string> _availableRoles = new() { "User", "Manager", "Admin" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            _loading = true;
+            _error = null;
+            _users = await UserService.GetAllUsers();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading users");
+            _error = "Failed to load users. Please try again later.";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void StartEdit(UserDto user)
+    {
+        _editingUserId = user.Id;
+        _selectedRoles = new List<string>(user.Roles);
+    }
+
+    private void CancelEdit()
+    {
+        _editingUserId = null;
+        _selectedRoles.Clear();
+    }
+
+    private void OnRoleToggle(string role, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!_selectedRoles.Contains(role))
+            {
+                _selectedRoles.Add(role);
+            }
+        }
+        else
+        {
+            _selectedRoles.Remove(role);
+        }
+    }
+
+    private async Task SaveRoles()
+    {
+        if (_editingUserId == null) return;
+
+        try
+        {
+            var success = await UserService.UpdateUserRoles(_editingUserId, _selectedRoles);
+            if (success)
+            {
+                await LoadUsers();
+                _editingUserId = null;
+                _selectedRoles.Clear();
+            }
+            else
+            {
+                _error = "Failed to update user roles. Please try again later.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating user roles");
+            _error = "Failed to update user roles. Please try again later.";
+        }
+    }
+} 
